@@ -1,0 +1,791 @@
+/* ============================================
+   ITL Dashboard Widgets - CSS Styles
+   ============================================ */
+
+/* ============================================
+   Resource Distribution Widget
+   ============================================ */
+.resource-distribution-widget {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.resource-distribution-widget .distribution-chart-container {
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
+}
+
+.resource-distribution-widget #resource-distribution-chart {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.resource-distribution-widget .distribution-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resource-distribution-widget .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.resource-distribution-widget .legend-item:hover {
+  background: #e9ecef;
+}
+
+.resource-distribution-widget .legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.resource-distribution-widget .legend-label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.resource-distribution-widget .legend-value {
+  font-weight: 600;
+  color: #222;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 576px) {
+  .resource-distribution-widget {
+    flex-direction: column;
+  }
+  .resource-distribution-widget .distribution-chart-container {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+/* ============================================
+   Alerts Widget
+   ============================================ */
+.alerts-widget {
+  padding: 5px 0;
+}
+
+.alerts-widget .alerts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.alerts-widget .alerts-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #444;
+}
+
+.alerts-widget .count-badge {
+  background: #dc3545;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.alerts-widget .alerts-filters {
+  display: flex;
+  gap: 5px;
+}
+
+.alerts-widget .filter-btn {
+  padding: 4px 12px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.alerts-widget .filter-btn:hover {
+  border-color: #ffc451;
+  color: #ffc451;
+}
+
+.alerts-widget .filter-btn.active {
+  background: #ffc451;
+  border-color: #ffc451;
+  color: #312f2f;
+}
+
+.alerts-widget .alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.alerts-widget .alert-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border-left: 4px solid #6c757d;
+  transition: all 0.2s;
+}
+
+.alerts-widget .alert-item:hover {
+  background: #f0f0f0;
+}
+
+.alerts-widget .alert-item.alert-critical {
+  border-left-color: #dc3545;
+  background: #fff5f5;
+}
+
+.alerts-widget .alert-item.alert-warning {
+  border-left-color: #ffc107;
+  background: #fffbeb;
+}
+
+.alerts-widget .alert-item.alert-info {
+  border-left-color: #0dcaf0;
+  background: #f0faff;
+}
+
+.alerts-widget .alert-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.alerts-widget .alert-critical .alert-icon { color: #dc3545; }
+.alerts-widget .alert-warning .alert-icon { color: #ffc107; }
+.alerts-widget .alert-info .alert-icon { color: #0dcaf0; }
+
+.alerts-widget .alert-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.alerts-widget .alert-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #222;
+  margin-bottom: 4px;
+}
+
+.alerts-widget .alert-message {
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.alerts-widget .alert-meta {
+  display: flex;
+  gap: 15px;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.alerts-widget .alert-dismiss {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.alerts-widget .alert-dismiss:hover {
+  opacity: 1;
+  color: #dc3545;
+}
+
+.alerts-widget .alerts-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #28a745;
+  gap: 10px;
+}
+
+.alerts-widget .alerts-empty i {
+  font-size: 2.5rem;
+}
+
+/* ============================================
+   Deployment Status Widget
+   ============================================ */
+.deployment-status-widget {
+  padding: 5px 0;
+}
+
+.deployment-status-widget .deployments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.deployment-status-widget .deployment-item {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.deployment-status-widget .deployment-item:hover {
+  background: #f0f0f0;
+}
+
+.deployment-status-widget .deploy-progress-ring {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.deployment-status-widget .deploy-progress-ring svg {
+  transform: rotate(-90deg);
+}
+
+.deployment-status-widget .deploy-progress-ring .circle-bg {
+  fill: none;
+  stroke: #e9ecef;
+  stroke-width: 3;
+}
+
+.deployment-status-widget .deploy-progress-ring .circle-progress {
+  fill: none;
+  stroke: #ffc451;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.deployment-status-widget .deploy-succeeded .circle-progress { stroke: #28a745; }
+.deployment-status-widget .deploy-failed .circle-progress { stroke: #dc3545; }
+.deployment-status-widget .deploy-pending .circle-progress { stroke: #6c757d; }
+
+.deployment-status-widget .progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.deployment-status-widget .deploy-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.deployment-status-widget .deploy-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #222;
+}
+
+.deployment-status-widget .deploy-target {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 2px 0;
+}
+
+.deployment-status-widget .deploy-meta {
+  display: flex;
+  gap: 15px;
+  font-size: 0.8rem;
+}
+
+.deployment-status-widget .deploy-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.deployment-status-widget .status-running { color: #ffc451; }
+.deployment-status-widget .status-succeeded { color: #28a745; }
+.deployment-status-widget .status-failed { color: #dc3545; }
+.deployment-status-widget .status-pending { color: #6c757d; }
+
+.deployment-status-widget .deploy-duration {
+  color: #888;
+}
+
+.deployment-status-widget .deploy-link {
+  color: #aaa;
+  padding: 8px;
+  transition: color 0.15s;
+}
+
+.deployment-status-widget .deploy-link:hover {
+  color: #ffc451;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.deployment-status-widget .spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   Resource Health Widget
+   ============================================ */
+.resource-health-widget {
+  padding: 10px 0;
+}
+
+.resource-health-widget .health-summary {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+
+.resource-health-widget .health-ring-container {
+  flex-shrink: 0;
+}
+
+.resource-health-widget .health-ring {
+  width: 140px;
+  height: 140px;
+  position: relative;
+}
+
+.resource-health-widget .health-ring svg {
+  transform: rotate(-90deg);
+}
+
+.resource-health-widget .health-track {
+  fill: none;
+  stroke: #e9ecef;
+  stroke-width: 8;
+}
+
+.resource-health-widget .health-progress {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.resource-health-widget .health-progress.healthy { stroke: #28a745; }
+.resource-health-widget .health-progress.degraded { stroke: #ffc107; }
+.resource-health-widget .health-progress.unhealthy { stroke: #dc3545; }
+
+.resource-health-widget .health-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.resource-health-widget .health-percent {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.resource-health-widget .health-label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.resource-health-widget .health-breakdown {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.resource-health-widget .health-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.resource-health-widget .health-stat i {
+  font-size: 1.3rem;
+}
+
+.resource-health-widget .health-stat.healthy i { color: #28a745; }
+.resource-health-widget .health-stat.degraded i { color: #ffc107; }
+.resource-health-widget .health-stat.unhealthy i { color: #dc3545; }
+.resource-health-widget .health-stat.unknown i { color: #6c757d; }
+
+.resource-health-widget .stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.resource-health-widget .stat-value {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #222;
+}
+
+.resource-health-widget .stat-label {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.resource-health-widget .health-issues {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e9ecef;
+}
+
+.resource-health-widget .issues-header {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.resource-health-widget .issue-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.resource-health-widget .issue-resource {
+  font-weight: 500;
+  color: #444;
+}
+
+.resource-health-widget .issue-desc {
+  color: #888;
+}
+
+@media (max-width: 576px) {
+  .resource-health-widget .health-summary {
+    flex-direction: column;
+  }
+  .resource-health-widget .health-breakdown {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   Usage Metrics Widget
+   ============================================ */
+.usage-metrics-widget {
+  padding: 10px 0;
+}
+
+.usage-metrics-widget .metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.usage-metrics-widget .metric-card {
+  display: flex;
+  gap: 12px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.usage-metrics-widget .metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.usage-metrics-widget .metric-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.usage-metrics-widget .metric-icon.cpu { background: #e8f5e9; color: #2e7d32; }
+.usage-metrics-widget .metric-icon.memory { background: #e3f2fd; color: #1565c0; }
+.usage-metrics-widget .metric-icon.storage { background: #fff3e0; color: #ef6c00; }
+.usage-metrics-widget .metric-icon.network { background: #f3e5f5; color: #7b1fa2; }
+
+.usage-metrics-widget .metric-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.usage-metrics-widget .metric-label {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.usage-metrics-widget .metric-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.usage-metrics-widget .metric-unit {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #888;
+  margin-left: 2px;
+}
+
+.usage-metrics-widget .metric-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.usage-metrics-widget .bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.usage-metrics-widget .cpu-fill { background: linear-gradient(90deg, #4caf50, #81c784); }
+.usage-metrics-widget .memory-fill { background: linear-gradient(90deg, #2196f3, #64b5f6); }
+.usage-metrics-widget .storage-fill { background: linear-gradient(90deg, #ff9800, #ffb74d); }
+.usage-metrics-widget .network-fill { background: linear-gradient(90deg, #9c27b0, #ba68c8); }
+
+.usage-metrics-widget .cost-estimate {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.usage-metrics-widget .cost-label {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 5px;
+}
+
+.usage-metrics-widget .cost-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.usage-metrics-widget .currency {
+  font-size: 1.2rem;
+  vertical-align: top;
+  margin-right: 2px;
+  color: #ffc451;
+}
+
+.usage-metrics-widget .cost-trend {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.usage-metrics-widget .cost-trend.up {
+  background: rgba(220, 53, 69, 0.2);
+  color: #ff6b6b;
+}
+
+.usage-metrics-widget .cost-trend.down {
+  background: rgba(40, 167, 69, 0.2);
+  color: #69db7c;
+}
+
+@media (max-width: 576px) {
+  .usage-metrics-widget .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   Provider Registry Widget
+   ============================================ */
+.provider-registry-widget {
+  padding: 5px 0;
+}
+
+.provider-registry-widget .providers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.provider-registry-widget .provider-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.provider-registry-widget .provider-item:hover {
+  background: #f0f0f0;
+}
+
+.provider-registry-widget .provider-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.provider-registry-widget .provider-status.status-healthy { background: #28a745; }
+.provider-registry-widget .provider-status.status-warning { background: #ffc107; }
+.provider-registry-widget .provider-status.status-unhealthy { background: #dc3545; }
+.provider-registry-widget .provider-status.status-unknown { background: #6c757d; }
+
+.provider-registry-widget .provider-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.provider-registry-widget .provider-namespace {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #222;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.provider-registry-widget .provider-name {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 2px 0;
+}
+
+.provider-registry-widget .provider-meta {
+  display: flex;
+  gap: 15px;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.provider-registry-widget .provider-version {
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.provider-registry-widget .provider-resources {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.provider-registry-widget .provider-health {
+  font-size: 1.2rem;
+  padding: 5px;
+}
+
+.provider-registry-widget .provider-health.healthy { color: #28a745; }
+.provider-registry-widget .provider-health.warning { color: #ffc107; }
+.provider-registry-widget .provider-health.unhealthy { color: #dc3545; }
+
+/* ============================================
+   Quick Links Widget Enhancements
+   ============================================ */
+.quick-links-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-links-widget .quick-link-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #444;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.quick-links-widget .quick-link-item:hover {
+  background: #ffc451;
+  color: #312f2f;
+  transform: translateX(5px);
+}
+
+.quick-links-widget .quick-link-item i:first-child {
+  font-size: 1.3rem;
+  width: 30px;
+  text-align: center;
+  color: #ffc451;
+}
+
+.quick-links-widget .quick-link-item:hover i:first-child {
+  color: #312f2f;
+}
+
+.quick-links-widget .link-text {
+  flex: 1;
+}
+
+.quick-links-widget .link-text strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.quick-links-widget .link-text small {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.quick-links-widget .quick-link-item:hover .link-text small {
+  color: #555;
+}
+
+.quick-links-widget .arrow {
+  color: #ccc;
+  transition: transform 0.2s;
+}
+
+.quick-links-widget .quick-link-item:hover .arrow {
+  transform: translateX(3px);
+  color: #312f2f;
+}

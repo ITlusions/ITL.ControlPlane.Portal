@@ -1,0 +1,82 @@
+{# Provider Registry Widget - Registered resource providers #}
+{% set providers = widget_data.providers if widget_data and widget_data.providers else [] %}
+<div class="provider-registry-widget" id="provider-registry-widget">
+  <div class="providers-list">
+    {% if providers %}
+      {% for provider in providers %}
+      <div class="provider-item">
+        <div class="provider-status status-{{ provider.status|lower }}"></div>
+        <div class="provider-info">
+          <div class="provider-namespace">{{ provider.namespace }}</div>
+          <div class="provider-name">{{ provider.name }}</div>
+          <div class="provider-meta">
+            <span class="provider-version">v{{ provider.version or '1.0.0' }}</span>
+            <span class="provider-resources">
+              <i class="bi bi-box"></i> {{ provider.resource_types|length if provider.resource_types else 0 }} types
+            </span>
+          </div>
+        </div>
+        <div class="provider-health">
+          <i class="bi bi-heart-pulse{% if provider.status == 'healthy' %}-fill{% endif %}"></i>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      {# Sample providers for demo #}
+      <div class="provider-item">
+        <div class="provider-status status-healthy"></div>
+        <div class="provider-info">
+          <div class="provider-namespace">ITL.Core</div>
+          <div class="provider-name">Core Resource Provider</div>
+          <div class="provider-meta">
+            <span class="provider-version">v2.1.0</span>
+            <span class="provider-resources"><i class="bi bi-box"></i> 9 types</span>
+          </div>
+        </div>
+        <div class="provider-health healthy"><i class="bi bi-heart-pulse-fill"></i></div>
+      </div>
+      <div class="provider-item">
+        <div class="provider-status status-healthy"></div>
+        <div class="provider-info">
+          <div class="provider-namespace">ITL.IAM</div>
+          <div class="provider-name">Identity & Access Provider</div>
+          <div class="provider-meta">
+            <span class="provider-version">v1.5.0</span>
+            <span class="provider-resources"><i class="bi bi-box"></i> 3 types</span>
+          </div>
+        </div>
+        <div class="provider-health healthy"><i class="bi bi-heart-pulse-fill"></i></div>
+      </div>
+      <div class="provider-item">
+        <div class="provider-status status-healthy"></div>
+        <div class="provider-info">
+          <div class="provider-namespace">ITL.Compute</div>
+          <div class="provider-name">Compute Resource Provider</div>
+          <div class="provider-meta">
+            <span class="provider-version">v1.0.0</span>
+            <span class="provider-resources"><i class="bi bi-box"></i> 1 types</span>
+          </div>
+        </div>
+        <div class="provider-health healthy"><i class="bi bi-heart-pulse-fill"></i></div>
+      </div>
+      <div class="provider-item">
+        <div class="provider-status status-warning"></div>
+        <div class="provider-info">
+          <div class="provider-namespace">ITL.Network</div>
+          <div class="provider-name">Network Resource Provider</div>
+          <div class="provider-meta">
+            <span class="provider-version">v0.9.0</span>
+            <span class="provider-resources"><i class="bi bi-box"></i> 4 types</span>
+          </div>
+        </div>
+        <div class="provider-health warning"><i class="bi bi-heart-pulse"></i></div>
+      </div>
+    {% endif %}
+  </div>
+  
+  <div class="mt-3 text-end">
+    <a href="/providers" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-plug me-1"></i>All Providers
+    </a>
+  </div>
+</div>

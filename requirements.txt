@@ -1,0 +1,17 @@
+# ITL Control Plane Portal
+# Customer self-service portal (no infrastructure access)
+
+# Web framework
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+jinja2==3.1.3
+httpx==0.26.0
+loguru==0.7.2
+python-multipart==0.0.9
+pyyaml==6.0.1
+itsdangerous==2.1.2
+starlette[full]==0.36.3
+redis[hiredis]==5.0.1
+
+# NOTE: docker and kubernetes packages intentionally excluded
+# Infrastructure management is Admin Portal only

@@ -1,0 +1,102 @@
+{# Service Status Widget - Platform Health Overview #}
+{# Handle both list and dict formats from _get_service_status() #}
+{% set raw_services = widget_data.services if widget_data and widget_data.services else {} %}
+{% set services = raw_services.services if raw_services is mapping and raw_services.services else (raw_services if raw_services is iterable and raw_services is not mapping else []) %}
+<div class="service-status-widget">
+  <div class="service-grid">
+    {% if services and services|length > 0 %}
+      {% for service in services %}
+      <div class="service-item">
+        <span class="service-dot service-{{ service.status }}"></span>
+        <span class="service-name">{{ service.name }}</span>
+        <span class="service-detail">{{ service.detail or '' }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+    {# Fallback with hardcoded services if no data #}
+    <div class="service-item">
+      <span class="service-dot service-healthy"></span>
+      <span class="service-name">API Gateway</span>
+      <span class="service-detail">Healthy</span>
+    </div>
+    <div class="service-item">
+      <span class="service-dot service-healthy"></span>
+      <span class="service-name">PostgreSQL</span>
+      <span class="service-detail">Connected</span>
+    </div>
+    <div class="service-item">
+      <span class="service-dot service-healthy"></span>
+      <span class="service-name">Redis</span>
+      <span class="service-detail">Active</span>
+    </div>
+    <div class="service-item">
+      <span class="service-dot service-healthy"></span>
+      <span class="service-name">Neo4j</span>
+      <span class="service-detail">Synced</span>
+    </div>
+    <div class="service-item">
+      <span class="service-dot service-warning"></span>
+      <span class="service-name">RabbitMQ</span>
+      <span class="service-detail">3 pending</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .service-status-widget .service-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
+  .service-status-widget .service-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: .85rem;
+    min-width: 140px;
+  }
+  .service-status-widget .service-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .service-status-widget .service-dot.service-healthy {
+    background: #28a745;
+    box-shadow: 0 0 6px rgba(40, 167, 69, 0.5);
+  }
+  .service-status-widget .service-dot.service-warning {
+    background: #ffc107;
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.5);
+  }
+  .service-status-widget .service-dot.service-error,
+  .service-status-widget .service-dot.service-unhealthy {
+    background: #dc3545;
+    box-shadow: 0 0 6px rgba(220, 53, 69, 0.5);
+  }
+  .service-status-widget .service-name {
+    font-weight: 600;
+    color: #333;
+  }
+  .service-status-widget .service-detail {
+    color: #666;
+    font-size: .78rem;
+    margin-left: auto;
+  }
+  
+  /* Dark mode / SOC mode */
+  .soc-mode .service-status-widget .service-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .soc-mode .service-status-widget .service-name {
+    color: #c9d1d9;
+  }
+  .soc-mode .service-status-widget .service-detail {
+    color: #8b949e;
+  }
+</style>

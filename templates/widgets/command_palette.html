@@ -1,0 +1,379 @@
+{# Command Palette Widget - Quick search and navigation #}
+<div class="command-palette-widget" id="command-palette-widget">
+  <div class="palette-trigger" id="palette-trigger">
+    <i class="bi bi-search"></i>
+    <span>Quick search...</span>
+    <kbd>Ctrl+K</kbd>
+  </div>
+</div>
+
+{# Modal overlay #}
+<div class="palette-modal" id="palette-modal" style="display: none;">
+  <div class="palette-container">
+    <div class="palette-header">
+      <i class="bi bi-search"></i>
+      <input type="text" id="palette-input" placeholder="Search resources, commands, or navigate..." autocomplete="off">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="palette-results" id="palette-results">
+      <div class="results-group">
+        <div class="group-label">Quick Actions</div>
+        <div class="result-item" data-action="create-resource">
+          <i class="bi bi-plus-circle"></i>
+          <span class="result-text">Create new resource</span>
+          <span class="result-hint">Create a new resource in the platform</span>
+        </div>
+        <div class="result-item" data-action="view-activity">
+          <i class="bi bi-clock-history"></i>
+          <span class="result-text">View activity logs</span>
+          <span class="result-hint">See recent platform activity</span>
+        </div>
+        <div class="result-item" data-action="refresh">
+          <i class="bi bi-arrow-clockwise"></i>
+          <span class="result-text">Refresh dashboard</span>
+          <span class="result-hint">Reload current view</span>
+        </div>
+      </div>
+      <div class="results-group">
+        <div class="group-label">Navigation</div>
+        <div class="result-item" data-href="/">
+          <i class="bi bi-house"></i>
+          <span class="result-text">Home</span>
+        </div>
+        <div class="result-item" data-href="/resources/all">
+          <i class="bi bi-grid-3x3-gap"></i>
+          <span class="result-text">All Resources</span>
+        </div>
+        <div class="result-item" data-href="/resources/tenants">
+          <i class="bi bi-building"></i>
+          <span class="result-text">Tenants</span>
+        </div>
+        <div class="result-item" data-href="/resources/subscriptions">
+          <i class="bi bi-key"></i>
+          <span class="result-text">Subscriptions</span>
+        </div>
+        <div class="result-item" data-href="/resources/resourcegroups">
+          <i class="bi bi-folder"></i>
+          <span class="result-text">Resource Groups</span>
+        </div>
+        <div class="result-item" data-href="/infra">
+          <i class="bi bi-box-seam"></i>
+          <span class="result-text">Infrastructure</span>
+        </div>
+        <div class="result-item" data-href="/activity-logs">
+          <i class="bi bi-list-task"></i>
+          <span class="result-text">Activity Logs</span>
+        </div>
+      </div>
+    </div>
+    <div class="palette-footer">
+      <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+      <span><kbd>Enter</kbd> Select</span>
+      <span><kbd>Esc</kbd> Close</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Trigger button */
+  .command-palette-widget .palette-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #666;
+  }
+  .command-palette-widget .palette-trigger:hover {
+    background: #fff;
+    border-color: #ffc451;
+    box-shadow: 0 2px 8px rgba(255, 196, 81, 0.2);
+  }
+  .command-palette-widget .palette-trigger span {
+    flex: 1;
+    font-size: 0.9rem;
+  }
+  .command-palette-widget .palette-trigger kbd {
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: inherit;
+  }
+
+  /* Modal overlay */
+  .palette-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 15vh;
+    animation: fadeIn 0.15s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Container */
+  .palette-modal .palette-container {
+    width: 100%;
+    max-width: 580px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: slideDown 0.15s ease;
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Header */
+  .palette-modal .palette-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9ecef;
+  }
+  .palette-modal .palette-header i {
+    color: #888;
+    font-size: 1.1rem;
+  }
+  .palette-modal .palette-header input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #222;
+  }
+  .palette-modal .palette-header input::placeholder {
+    color: #aaa;
+  }
+  .palette-modal .palette-header kbd {
+    background: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: #666;
+  }
+
+  /* Results */
+  .palette-modal .palette-results {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px 0;
+  }
+  .palette-modal .results-group {
+    padding: 5px 0;
+  }
+  .palette-modal .group-label {
+    padding: 8px 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #888;
+    letter-spacing: 0.5px;
+  }
+  .palette-modal .result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .palette-modal .result-item:hover,
+  .palette-modal .result-item.active {
+    background: #ffc451;
+  }
+  .palette-modal .result-item i {
+    color: #666;
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+  }
+  .palette-modal .result-item:hover i,
+  .palette-modal .result-item.active i {
+    color: #312f2f;
+  }
+  .palette-modal .result-text {
+    flex: 1;
+    font-size: 0.9rem;
+    color: #222;
+  }
+  .palette-modal .result-hint {
+    font-size: 0.8rem;
+    color: #888;
+  }
+  .palette-modal .result-item:hover .result-hint,
+  .palette-modal .result-item.active .result-hint {
+    color: #555;
+  }
+  .palette-modal .result-item.hidden {
+    display: none;
+  }
+
+  /* Footer */
+  .palette-modal .palette-footer {
+    display: flex;
+    gap: 20px;
+    padding: 12px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    font-size: 0.75rem;
+    color: #888;
+  }
+  .palette-modal .palette-footer kbd {
+    background: #e0e0e0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 4px;
+  }
+</style>
+
+<script>
+(function() {
+  const trigger = document.getElementById('palette-trigger');
+  const modal = document.getElementById('palette-modal');
+  const input = document.getElementById('palette-input');
+  const results = document.getElementById('palette-results');
+  let activeIndex = -1;
+
+  function openPalette() {
+    modal.style.display = 'flex';
+    input.value = '';
+    input.focus();
+    filterResults('');
+    activeIndex = -1;
+  }
+
+  function closePalette() {
+    modal.style.display = 'none';
+    activeIndex = -1;
+  }
+
+  function filterResults(query) {
+    const items = results.querySelectorAll('.result-item');
+    const q = query.toLowerCase().trim();
+    
+    items.forEach(item => {
+      const text = item.querySelector('.result-text')?.textContent.toLowerCase() || '';
+      const hint = item.querySelector('.result-hint')?.textContent.toLowerCase() || '';
+      const matches = !q || text.includes(q) || hint.includes(q);
+      item.classList.toggle('hidden', !matches);
+    });
+    
+    activeIndex = -1;
+    updateActiveItem();
+  }
+
+  function getVisibleItems() {
+    return [...results.querySelectorAll('.result-item:not(.hidden)')];
+  }
+
+  function updateActiveItem() {
+    const items = getVisibleItems();
+    items.forEach((item, i) => {
+      item.classList.toggle('active', i === activeIndex);
+    });
+  }
+
+  function selectItem(item) {
+    if (!item) return;
+    
+    const href = item.dataset.href;
+    const action = item.dataset.action;
+    
+    if (href) {
+      window.location.href = href;
+    } else if (action) {
+      handleAction(action);
+    }
+    
+    closePalette();
+  }
+
+  function handleAction(action) {
+    switch (action) {
+      case 'create-resource':
+        window.location.href = '/resources/create';
+        break;
+      case 'view-activity':
+        window.location.href = '/activity-logs';
+        break;
+      case 'refresh':
+        window.location.reload();
+        break;
+    }
+  }
+
+  // Event listeners
+  if (trigger) {
+    trigger.addEventListener('click', openPalette);
+  }
+
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closePalette();
+    });
+  }
+
+  if (input) {
+    input.addEventListener('input', (e) => {
+      filterResults(e.target.value);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      const items = getVisibleItems();
+      
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          activeIndex = Math.min(activeIndex + 1, items.length - 1);
+          updateActiveItem();
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          activeIndex = Math.max(activeIndex - 1, 0);
+          updateActiveItem();
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (activeIndex >= 0) {
+            selectItem(items[activeIndex]);
+          }
+          break;
+        case 'Escape':
+          closePalette();
+          break;
+      }
+    });
+  }
+
+  results?.querySelectorAll('.result-item').forEach(item => {
+    item.addEventListener('click', () => selectItem(item));
+  });
+
+  // Global keyboard shortcut
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      if (modal.style.display === 'none') {
+        openPalette();
+      } else {
+        closePalette();
+      }
+    }
+  });
+})();
+</script>

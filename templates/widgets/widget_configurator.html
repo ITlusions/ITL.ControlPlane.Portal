@@ -1,0 +1,577 @@
+{# Widget Configurator - Allows users to show/hide dashboard widgets #}
+<div class="widget-configurator" id="widget-configurator">
+  {# Configurator trigger button #}
+  <button class="configurator-toggle" id="configurator-toggle" title="Configure Dashboard Widgets">
+    <i class="bi bi-sliders"></i>
+  </button>
+  
+  {# Configurator panel #}
+  <div class="configurator-panel" id="configurator-panel" style="display: none;">
+    <div class="configurator-header">
+      <h4><i class="bi bi-layout-wtf"></i>Widgets</h4>
+      <button class="configurator-close" id="configurator-close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    
+    <div class="configurator-body">
+      <p class="configurator-hint">Toggle widgets on/off. Preferences are saved locally.</p>
+      
+      <div class="widget-list" id="widget-config-list">
+        {# Populated dynamically from available widgets #}
+      </div>
+      
+      <div class="configurator-actions">
+        <button class="btn-reset" id="reset-widgets">
+          <i class="bi bi-arrow-counterclockwise"></i>Reset
+        </button>
+        <button class="btn-save" id="save-widgets">
+          <i class="bi bi-check-lg"></i>Apply
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Configurator positioning */
+  .widget-configurator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1050;
+  }
+  
+  .widget-configurator .configurator-toggle {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    border: none;
+    background: #3e3e3e;
+    color: rgba(255,255,255,0.9);
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .widget-configurator .configurator-toggle:hover {
+    background: #4a4a4a;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 16px rgba(0,0,0,0.3);
+  }
+  
+  .widget-configurator .configurator-toggle:active {
+    transform: translateY(0);
+  }
+  
+  /* Panel */
+  .widget-configurator .configurator-panel {
+    position: absolute;
+    bottom: 54px;
+    right: 0;
+    width: 300px;
+    max-height: 450px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    overflow: hidden;
+    animation: configSlideUp 0.2s ease;
+    border: 1px solid #e0e0e0;
+  }
+  
+  @keyframes configSlideUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  .widget-configurator .configurator-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #3e3e3e;
+    color: white;
+  }
+  
+  .widget-configurator .configurator-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .widget-configurator .configurator-header h4 i {
+    color: #ffc451;
+  }
+  
+  .widget-configurator .configurator-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.15s;
+    font-size: 0.9rem;
+  }
+  
+  .widget-configurator .configurator-close:hover {
+    color: #fff;
+  }
+  
+  .widget-configurator .configurator-body {
+    padding: 12px 14px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  
+  .widget-configurator .configurator-hint {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 0 0 12px 0;
+  }
+  
+  /* Widget list */
+  .widget-configurator .widget-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  
+  .widget-configurator .widget-config-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+  
+  .widget-configurator .widget-config-item:hover {
+    background: #f0f0f0;
+  }
+  
+  .widget-configurator .widget-config-item.enabled {
+    border-color: #ffc451;
+    background: #fffbeb;
+  }
+  
+  .widget-configurator .widget-config-item.disabled {
+    opacity: 0.6;
+  }
+  
+  .widget-configurator .widget-config-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    background: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+  }
+  
+  .widget-configurator .widget-config-item.enabled .widget-config-icon {
+    background: #ffc451;
+    color: #3e3e3e;
+  }
+  
+  .widget-configurator .widget-config-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .widget-configurator .widget-config-title {
+    font-weight: 500;
+    font-size: 0.82rem;
+    color: #333;
+  }
+  
+  .widget-configurator .widget-config-meta {
+    font-size: 0.7rem;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 1px;
+  }
+  
+  .widget-configurator .widget-config-meta .admin-badge {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 600;
+  }
+  
+  /* Toggle switch */
+  .widget-configurator .widget-toggle {
+    position: relative;
+    width: 38px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  
+  .widget-configurator .widget-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .widget-configurator .widget-toggle .slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: #ccc;
+    border-radius: 20px;
+    transition: 0.2s;
+  }
+  
+  .widget-configurator .widget-toggle .slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  
+  .widget-configurator .widget-toggle input:checked + .slider {
+    background: #ffc451;
+  }
+  
+  .widget-configurator .widget-toggle input:checked + .slider:before {
+    transform: translateX(18px);
+  }
+  
+  /* Actions */
+  .widget-configurator .configurator-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .widget-configurator .btn-reset,
+  .widget-configurator .btn-save {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s;
+  }
+  
+  .widget-configurator .btn-reset {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    color: #555;
+  }
+  
+  .widget-configurator .btn-reset:hover {
+    background: #e5e5e5;
+    border-color: #ccc;
+  }
+  
+  .widget-configurator .btn-save {
+    background: #3e3e3e;
+    border: 1px solid #3e3e3e;
+    color: #fff;
+  }
+  
+  .widget-configurator .btn-save:hover {
+    background: #4a4a4a;
+  }
+  
+  /* Dark/SOC mode */
+  .soc-mode .widget-configurator .configurator-toggle {
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  
+  .soc-mode .widget-configurator .configurator-panel {
+    background: #1a1a2e;
+    border-color: rgba(255,255,255,0.1);
+  }
+  
+  .soc-mode .widget-configurator .configurator-header {
+    background: #0d0d1a;
+  }
+  
+  .soc-mode .widget-configurator .configurator-body {
+    background: #1a1a2e;
+  }
+  
+  .soc-mode .widget-configurator .configurator-hint {
+    color: #666;
+  }
+  
+  .soc-mode .widget-configurator .widget-config-item {
+    background: rgba(255,255,255,0.05);
+    border-color: transparent;
+  }
+  
+  .soc-mode .widget-configurator .widget-config-item:hover {
+    background: rgba(255,255,255,0.08);
+  }
+  
+  .soc-mode .widget-configurator .widget-config-item.enabled {
+    background: rgba(255,196,81,0.1);
+    border-color: rgba(255,196,81,0.3);
+  }
+  
+  .soc-mode .widget-configurator .widget-config-title {
+    color: #e0e0e0;
+  }
+  
+  .soc-mode .widget-configurator .widget-config-icon {
+    background: rgba(255,255,255,0.1);
+    color: #aaa;
+  }
+  
+  .soc-mode .widget-configurator .widget-config-item.enabled .widget-config-icon {
+    background: #ffc451;
+    color: #1a1a2e;
+  }
+  
+  .soc-mode .widget-configurator .configurator-actions {
+    border-color: rgba(255,255,255,0.1);
+  }
+  
+  .soc-mode .widget-configurator .btn-reset {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.15);
+    color: #aaa;
+  }
+  
+  .soc-mode .widget-configurator .btn-reset:hover {
+    background: rgba(255,255,255,0.15);
+  }
+  
+  .soc-mode .widget-configurator .btn-save {
+    background: #ffc451;
+    border-color: #ffc451;
+    color: #1a1a2e;
+  }
+</style>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'itl_dashboard_widgets';
+  
+  // Available widgets metadata (populated from server)
+  const availableWidgets = [
+    { id: 'platform_stats', title: 'Platform Overview', icon: 'bi-bar-chart', admin: false },
+    { id: 'service_status', title: 'Service Status', icon: 'bi-activity', admin: true },
+    { id: 'container_stack', title: 'Docker Stack', icon: 'bi-box-seam', admin: true },
+    { id: 'quick_links', title: 'Quick Links', icon: 'bi-collection', admin: false },
+    { id: 'infra_links', title: 'Infrastructure', icon: 'bi-gear', admin: true },
+    { id: 'recent_activity', title: 'Recent Activity', icon: 'bi-clock-history', admin: false },
+    // New widgets
+    { id: 'alerts', title: 'Alerts', icon: 'bi-bell', admin: true },
+    { id: 'deployment_status', title: 'Deployments', icon: 'bi-rocket-takeoff', admin: true },
+    { id: 'resource_health', title: 'Resource Health', icon: 'bi-heart-pulse', admin: false },
+    { id: 'usage_metrics', title: 'Usage Metrics', icon: 'bi-speedometer2', admin: true },
+    { id: 'provider_registry', title: 'Providers', icon: 'bi-plug', admin: true },
+    { id: 'resource_distribution', title: 'Resource Distribution', icon: 'bi-pie-chart', admin: false },
+  ];
+  
+  // Get saved preferences
+  function getWidgetPrefs() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }
+  
+  // Save preferences
+  function saveWidgetPrefs(prefs) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    } catch {
+      // Ignore storage errors
+    }
+  }
+  
+  // Get default widget state (all visible)
+  function getDefaultPrefs() {
+    const prefs = {};
+    availableWidgets.forEach(w => {
+      prefs[w.id] = true;
+    });
+    return prefs;
+  }
+  
+  // Apply widget visibility
+  function applyWidgetVisibility(prefs) {
+    availableWidgets.forEach(w => {
+      const widgetEl = document.getElementById(`widget-${w.id}`);
+      if (widgetEl) {
+        const container = widgetEl.closest('.mb-3');
+        if (container) {
+          container.style.display = prefs[w.id] !== false ? '' : 'none';
+        }
+      }
+    });
+  }
+  
+  // Render widget list in configurator
+  function renderWidgetList(prefs) {
+    const list = document.getElementById('widget-config-list');
+    if (!list) return;
+    
+    list.innerHTML = availableWidgets.map(w => {
+      const enabled = prefs[w.id] !== false;
+      const exists = document.getElementById(`widget-${w.id}`);
+      
+      return `
+        <div class="widget-config-item ${enabled ? 'enabled' : 'disabled'}" data-widget-id="${w.id}">
+          <div class="widget-config-icon">
+            <i class="bi ${w.icon}"></i>
+          </div>
+          <div class="widget-config-info">
+            <div class="widget-config-title">${w.title}</div>
+            <div class="widget-config-meta">
+              ${w.admin ? '<span class="admin-badge">Admin</span>' : ''}
+              ${!exists ? '<span style="color:#ffc107"><i class="bi bi-exclamation-triangle"></i> Not on page</span>' : ''}
+            </div>
+          </div>
+          <label class="widget-toggle">
+            <input type="checkbox" ${enabled ? 'checked' : ''} data-widget-id="${w.id}">
+            <span class="slider"></span>
+          </label>
+        </div>
+      `;
+    }).join('');
+    
+    // Add toggle event listeners
+    list.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const widgetId = e.target.dataset.widgetId;
+        const item = e.target.closest('.widget-config-item');
+        item.classList.toggle('enabled', e.target.checked);
+        item.classList.toggle('disabled', !e.target.checked);
+      });
+    });
+  }
+  
+  // Get current preferences from checkboxes
+  function getCurrentPrefsFromUI() {
+    const prefs = {};
+    document.querySelectorAll('#widget-config-list input[type="checkbox"]').forEach(cb => {
+      prefs[cb.dataset.widgetId] = cb.checked;
+    });
+    return prefs;
+  }
+  
+  // Initialize
+  function init() {
+    const toggle = document.getElementById('configurator-toggle');
+    const panel = document.getElementById('configurator-panel');
+    const closeBtn = document.getElementById('configurator-close');
+    const resetBtn = document.getElementById('reset-widgets');
+    const saveBtn = document.getElementById('save-widgets');
+    
+    if (!toggle || !panel) return;
+    
+    // Load and apply saved preferences
+    let prefs = getWidgetPrefs() || getDefaultPrefs();
+    applyWidgetVisibility(prefs);
+    
+    // Toggle panel
+    toggle.addEventListener('click', () => {
+      const isVisible = panel.style.display !== 'none';
+      panel.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) {
+        renderWidgetList(prefs);
+      }
+    });
+    
+    // Close panel
+    closeBtn?.addEventListener('click', () => {
+      panel.style.display = 'none';
+    });
+    
+    // Click outside to close
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.widget-configurator') && panel.style.display !== 'none') {
+        panel.style.display = 'none';
+      }
+    });
+    
+    // Reset to defaults
+    resetBtn?.addEventListener('click', () => {
+      prefs = getDefaultPrefs();
+      renderWidgetList(prefs);
+    });
+    
+    // Save preferences
+    saveBtn?.addEventListener('click', () => {
+      prefs = getCurrentPrefsFromUI();
+      saveWidgetPrefs(prefs);
+      applyWidgetVisibility(prefs);
+      panel.style.display = 'none';
+      
+      // Show toast notification
+      showToast('Widget preferences saved!');
+    });
+  }
+  
+  // Simple toast notification
+  function showToast(message) {
+    const existing = document.querySelector('.widget-toast');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'widget-toast';
+    toast.innerHTML = `<i class="bi bi-check-circle me-2"></i>${message}`;
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      background: #28a745;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 9999;
+      animation: slideUp 0.3s ease;
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'fadeOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }, 2000);
+  }
+  
+  // Init on DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

@@ -1,0 +1,24 @@
+{# Resource Distribution Widget - Pie/Donut chart of resources by type or location #}
+{% set distribution = widget_data.distribution if widget_data and widget_data.distribution else {} %}
+<div class="resource-distribution-widget" id="resource-distribution-widget">
+  <div class="distribution-chart-container">
+    <canvas id="resource-distribution-chart"></canvas>
+  </div>
+  <div class="distribution-legend" id="distribution-legend">
+    {# Legend populated by JavaScript #}
+  </div>
+</div>
+
+<script>
+(function() {
+  const data = {{ distribution | tojson | safe }} || {
+    labels: ['Tenants', 'Subscriptions', 'Resource Groups', 'Virtual Machines', 'Networks'],
+    values: [3, 12, 45, 28, 15],
+    colors: ['#ffc451', '#2ecc71', '#3498db', '#9b59b6', '#e74c3c']
+  };
+  
+  if (typeof initResourceDistribution === 'function') {
+    initResourceDistribution(data);
+  }
+})();
+</script>

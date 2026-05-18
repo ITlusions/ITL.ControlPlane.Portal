@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>{% block title %}Detail - ITlusions Control Plane{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --header-bg: #3e3e3e;
+      --orange-accent: #ffa500;
+      --pane-border: #e0e0e0;
+      --list-width: 260px;
+      --menu-width: 200px;
+      --hover-bg: #f5f5f5;
+      --active-bg: #e0e7ff;
+      --active-text: #3b5998;
+      --link-blue: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #fff; }
+
+    /* ── Header ──────────────────────────────────────── */
+    .header {
+      background: var(--header-bg); padding: .75rem 0;
+      position: fixed; top: 0; width: 100%; z-index: 1000;
+      box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    }
+    .sitename { color: #fff; font-weight: 700; font-size: 1.5rem; margin: 0; }
+    .site-logo { width: 28px; height: 28px; background: #ffd700; border-radius: 4px; margin-right: 10px; flex-shrink: 0; }
+    .navmenu ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 1.5rem; }
+    .navmenu a { color: rgba(255,255,255,.8); text-decoration: none; font-size: .9rem; }
+    .navmenu a:hover { color: #fff; }
+    .navmenu a.active { color: var(--orange-accent); }
+
+    /* ── 3-Pane Layout ───────────────────────────────── */
+    .page-wrapper { display: flex; margin-top: 56px; height: calc(100vh - 56px); overflow: hidden; }
+
+    /* ── Left Pane: List ─────────────────────────────── */
+    .list-pane {
+      width: var(--list-width); min-width: var(--list-width);
+      border-right: 1px solid var(--pane-border);
+      display: flex; flex-direction: column;
+      background: #fafafa; overflow: hidden;
+    }
+    .list-header {
+      padding: 14px 14px 10px; border-bottom: 1px solid var(--pane-border);
+      background: #fff;
+    }
+    .list-header h2 { font-size: .9rem; font-weight: 600; color: #333; margin: 0 0 6px; }
+    .list-header .back-link { font-size: .78rem; color: var(--link-blue); text-decoration: none; display: flex; align-items: center; gap: 4px; }
+    .list-header .back-link:hover { text-decoration: underline; }
+    .list-toolbar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 12px; border-bottom: 1px solid var(--pane-border);
+      background: #fff;
+    }
+    .list-toolbar .tb-btn {
+      padding: 4px 10px; border: 1px solid #ccc; border-radius: 3px;
+      background: #fff; font-size: .75rem; color: #333; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px; text-decoration: none;
+    }
+    .list-toolbar .tb-btn:hover { background: #f0f0f0; }
+    .list-search {
+      padding: 8px 12px; border-bottom: 1px solid #eee; background: #fff;
+    }
+    .list-search input {
+      width: 100%; border: 1px solid #ccc; border-radius: 3px;
+      padding: 5px 8px; font-size: .8rem;
+    }
+    .list-search input:focus { outline: none; border-color: var(--orange-accent); }
+    .list-items { flex: 1; overflow-y: auto; }
+    .list-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px; border-bottom: 1px solid #eee;
+      text-decoration: none; color: #333; font-size: .82rem;
+      transition: background .1s;
+    }
+    .list-item:hover { background: var(--hover-bg); }
+    .list-item.active { background: var(--active-bg); color: var(--active-text); font-weight: 600; }
+    .list-item .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .list-item .svc-name, .list-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .list-item .svc-badge { font-size: .65rem; padding: 1px 6px; border-radius: 8px; background: #e2e3e5; color: #555; }
+    .list-item i { font-size: .8rem; opacity: .5; flex-shrink: 0; }
+    .status-running { background: #28a745; }
+    .status-exited  { background: #dc3545; }
+    .status-paused  { background: #ffc107; }
+    .status-created { background: #6c757d; }
+    .list-footer {
+      padding: 8px 12px; border-top: 1px solid var(--pane-border);
+      background: #f8f8f8; font-size: .72rem; color: #888;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    /* ── Middle Pane: Detail Sidebar ──────────────────── */
+    .detail-sidebar {
+      width: var(--menu-width); min-width: var(--menu-width);
+      border-right: 1px solid var(--pane-border);
+      overflow-y: auto; background: #fff;
+    }
+    .ds-header {
+      padding: 14px 14px 10px; border-bottom: 1px solid var(--pane-border);
+    }
+    .ds-header h3 { font-size: .85rem; font-weight: 600; color: #333; margin: 0 0 2px; }
+    .ds-header .ds-sub { font-size: .72rem; color: #888; }
+    .ds-search {
+      padding: 10px 10px 6px; border-bottom: 1px solid #eee;
+    }
+    .ds-search input {
+      width: 100%; border: 1px solid #ccc; border-radius: 3px;
+      padding: 5px 8px; font-size: .78rem;
+    }
+    .ds-search input:focus { outline: none; border-color: var(--orange-accent); }
+    .ds-nav { list-style: none; margin: 0; padding: 6px 0; }
+    .ds-nav li a {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; text-decoration: none;
+      color: #333; font-size: .82rem;
+      border-left: 3px solid transparent;
+      transition: background .15s;
+    }
+    .ds-nav li a:hover { background: var(--hover-bg); }
+    .ds-nav li a.active { background: var(--active-bg); border-left-color: var(--active-text); color: var(--active-text); font-weight: 600; }
+    .ds-nav li a i { font-size: .85rem; width: 18px; text-align: center; }
+    .ds-divider { border-top: 1px solid #eee; margin: 4px 12px; }
+
+    /* ── Right Pane: Detail Content ───────────────────── */
+    .detail-content { flex: 1; overflow-y: auto; padding: 0; display: flex; flex-direction: column; }
+
+    /* Title bar */
+    .detail-title-bar {
+      padding: 16px 24px 12px;
+      border-bottom: 1px solid var(--pane-border);
+      background: #fff; position: sticky; top: 0; z-index: 10;
+    }
+    .detail-title-bar h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 4px; color: #222; }
+    .detail-title-bar .breadcrumb { font-size: .75rem; color: #888; display: flex; gap: 4px; align-items: center; margin: 0; }
+    .detail-title-bar .breadcrumb a { color: var(--link-blue); text-decoration: none; }
+    .detail-title-bar .res-subtitle { font-size: .78rem; color: #888; margin-top: 2px; }
+
+    /* Action toolbar */
+    .action-bar {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      padding: 8px 24px;
+      border-bottom: 1px solid var(--pane-border);
+      background: #fafafa;
+    }
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border: 1px solid #ccc; border-radius: 4px;
+      background: #fff; color: #333; font-size: .8rem; cursor: pointer;
+      transition: background .15s; text-decoration: none;
+    }
+    .action-btn:hover { background: #f0f0f0; }
+    .action-btn.danger { color: #dc3545; border-color: #dc3545; }
+    .action-btn.danger:hover { background: #fff5f5; }
+    .action-btn.success { color: #28a745; border-color: #28a745; }
+    .action-btn.success:hover { background: #f0fff4; }
+    .action-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .action-sep { width: 1px; height: 24px; background: #ddd; margin: 0 4px; }
+    .action-feedback { font-size: .78rem; color: #28a745; margin-left: 8px; display: none; }
+    .json-link {
+      margin-left: auto; font-size: .78rem; color: var(--link-blue); text-decoration: none;
+    }
+    .json-link:hover { text-decoration: underline; }
+
+    /* Detail sections */
+    .detail-section { padding: 18px 24px; }
+    .detail-section + .detail-section { border-top: 1px solid #eee; }
+    .section-title {
+      font-size: .82rem; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: .3px;
+      margin: 0 0 12px; display: flex; align-items: center; gap: 6px;
+    }
+
+    /* Essentials grid */
+    .essentials { padding: 16px 24px; border-bottom: 1px solid var(--pane-border); background: #fff; }
+    .essentials-toggle {
+      font-size: .82rem; font-weight: 600; color: #333; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+    }
+    .essentials-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    }
+    .ess-item {
+      display: flex; flex-direction: column; gap: 2px;
+      padding: 8px 0; border-bottom: 1px solid #f0f0f0;
+    }
+    .ess-item:nth-child(odd) { padding-right: 24px; }
+    .ess-item:nth-child(even) { padding-left: 24px; border-left: 1px solid #f0f0f0; }
+    .ess-label { font-size: .72rem; color: #888; text-transform: uppercase; letter-spacing: .3px; }
+    .ess-value { font-size: .85rem; color: #222; }
+    .ess-value code { font-size: .8rem; background: #f5f5f5; padding: 1px 5px; border-radius: 3px; }
+    .ess-value a { color: var(--link-blue); text-decoration: none; }
+    .ess-value a:hover { text-decoration: underline; }
+    .ess-value .status-ok { color: #16a34a; font-weight: 500; }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 10px; border-radius: 12px;
+      font-size: .75rem; font-weight: 600;
+    }
+    .sb-running, .status-badge.success { background: #d4edda; color: #155724; }
+    .sb-exited, .status-badge.danger { background: #f8d7da; color: #721c24; }
+    .sb-paused, .status-badge.warning { background: #fff3cd; color: #856404; }
+    .sb-other, .status-badge.secondary { background: #e2e3e5; color: #383d41; }
+    .health-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: .72rem; font-weight: 600; }
+    .health-healthy { background: #d4edda; color: #155724; }
+    .health-unhealthy { background: #f8d7da; color: #721c24; }
+    .health-starting { background: #d1ecf1; color: #0c5460; }
+    .health-none { background: #e2e3e5; color: #383d41; }
+
+    /* Tags */
+    .tags-section { padding: 12px 24px 16px; border-bottom: 1px solid var(--pane-border); }
+    .tags-label { font-size: .78rem; color: #666; margin-bottom: 6px; }
+    .tag-pill {
+      display: inline-block; background: #e8f0fe; border: 1px solid #c5d5f0;
+      border-radius: 4px; padding: 2px 10px; margin: 2px 3px 2px 0;
+      font-size: .75rem; color: #1a56db;
+    }
+
+    /* Property tables */
+    .detail-body { flex: 1; padding: 20px 24px; }
+    .detail-body h3 { font-size: .95rem; font-weight: 600; margin: 0 0 12px; color: #333; }
+    .prop-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .prop-table th {
+      text-align: left; padding: 7px 10px; background: #f8f8f8;
+      border-bottom: 1px solid #ddd; font-weight: 600; color: #555;
+      font-size: .76rem; text-transform: uppercase; letter-spacing: .3px;
+    }
+    .prop-table td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; color: #333; vertical-align: top; }
+    .prop-table td code { font-size: .78rem; background: #f5f5f5; padding: 1px 4px; border-radius: 3px; color: #888; }
+    .prop-table tr:hover td { background: #fafafa; }
+    .prop-table .pk { color: #666; font-weight: 500; width: 180px; }
+    .prop-table .pv { color: #333; word-break: break-all; }
+    .prop-table .pv a { color: var(--link-blue); text-decoration: none; }
+    .prop-table .pv a:hover { text-decoration: underline; }
+
+    /* Badges */
+    .port-badge { display: inline-block; padding: 1px 8px; margin: 1px 2px; background: #e8f0fe; color: #1a73e8; border-radius: 4px; font-size: .76rem; font-weight: 600; }
+    .dep-badge { display: inline-block; padding: 1px 8px; margin: 1px 2px; background: #f0f0f0; color: #333; border-radius: 4px; font-size: .76rem; }
+    .mount-rw { font-size: .68rem; padding: 1px 5px; border-radius: 4px; }
+    .mount-rw-true { background: #d4edda; color: #155724; }
+    .mount-rw-false { background: #f8d7da; color: #721c24; }
+
+    /* Logs panel */
+    .logs-panel {
+      background: #1e1e1e; color: #d4d4d4; border-radius: 6px;
+      padding: 14px; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: .75rem; line-height: 1.6; overflow-x: auto;
+      max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+    }
+    .logs-toolbar {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+    }
+    .logs-toolbar select, .logs-toolbar button {
+      font-size: .78rem; padding: 3px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff;
+    }
+
+    /* ── Main Header Mobile Menu Toggle ─────────────────── */
+    .header-mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    @media (max-width: 767.98px) {
+      .header-mobile-toggle { display: block; }
+      .navmenu { display: none; }
+      .header .d-none.d-md-inline, .header .d-none.d-md-inline-flex { display: none !important; }
+    }
+    
+    /* ── Main Header Mobile Navigation Overlay ─────────────── */
+    .mobile-nav-overlay {
+      display: none;
+      position: fixed;
+      top: 56px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+    .mobile-nav-overlay.show { display: block; }
+    
+    .mobile-nav {
+      position: fixed;
+      top: 56px;
+      right: -280px;
+      width: 280px;
+      height: calc(100vh - 56px);
+      background: #fff;
+      z-index: 1000;
+      transition: right 0.3s ease;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    .mobile-nav.show { right: 0; }
+    
+    .mobile-nav-item {
+      display: block;
+      padding: 14px 20px;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid #eee;
+      font-size: .95rem;
+    }
+    .mobile-nav-item:hover { background: #f5f5f5; color: #333; }
+    .mobile-nav-item i { margin-right: 10px; width: 20px; text-align: center; color: #ffa500; }
+    
+    .mobile-nav-section {
+      padding: 10px 20px;
+      font-size: .75rem;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      background: #f8f9fa;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* Mobile header bar - hidden by default */
+    .mobile-header-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      margin-top: 4px;
+      background: #f5f5f5;
+      border-bottom: 1px solid var(--pane-border);
+    }
+    .mobile-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--link-blue);
+      text-decoration: none;
+      font-size: .82rem;
+      font-weight: 500;
+    }
+    .mobile-back-btn:hover {
+      text-decoration: none;
+      color: var(--active-text);
+    }
+    .mobile-back-btn i {
+      font-size: .9rem;
+    }
+    
+    /* Mobile section menu */
+    .mobile-section-menu {
+      position: relative;
+    }
+    .section-menu-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      color: #333;
+      font-size: .72rem;
+      cursor: pointer;
+    }
+    .section-menu-toggle:hover {
+      background: #f0f0f0;
+    }
+    .section-menu-toggle i {
+      font-size: .85rem;
+    }
+    .section-menu-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      min-width: 180px;
+      background: #fff;
+      border: 1px solid var(--pane-border);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+      z-index: 200;
+      margin-top: 4px;
+    }
+    .section-menu-dropdown.show {
+      display: block;
+    }
+    .section-menu-dropdown a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      color: #333;
+      text-decoration: none;
+      font-size: .82rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .section-menu-dropdown a:last-child {
+      border-bottom: none;
+    }
+    .section-menu-dropdown a:hover {
+      background: var(--hover-bg);
+    }
+    .section-menu-dropdown a.active {
+      background: var(--active-bg);
+      color: var(--active-text);
+      font-weight: 600;
+    }
+    .section-menu-dropdown a i {
+      width: 18px;
+      text-align: center;
+    }
+
+    /* ── Responsive: Tablet (< 992px) ─────────────────── */
+    @media (max-width: 991px) {
+      :root {
+        --list-width: 200px;
+        --menu-width: 160px;
+      }
+      .detail-title-bar { padding: 12px 16px 10px; }
+      .action-bar { padding: 8px 16px; }
+      .essentials { padding: 12px 16px; }
+      .detail-section { padding: 14px 16px; }
+      .detail-body { padding: 16px; }
+    }
+
+    /* ── Responsive: Mobile (< 768px) ─────────────────── */
+    @media (max-width: 767px) {
+      .page-wrapper {
+        flex-direction: column !important;
+      }
+      
+      /* Hide left pane by default on mobile */
+      .list-pane {
+        display: none !important;
+        position: fixed;
+        top: 56px;
+        left: 0;
+        width: 100% !important;
+        min-width: 100% !important;
+        height: calc(100vh - 56px);
+        z-index: 100;
+        border-right: none;
+        background: #fafafa;
+      }
+      .list-pane.show-mobile {
+        display: flex !important;
+      }
+      
+      /* Show mobile header bar */
+      .mobile-header-bar {
+        display: flex !important;
+      }
+      
+      /* Hide detail sidebar nav on mobile */
+      .detail-sidebar {
+        width: 100% !important;
+        min-width: 100% !important;
+        border-right: none;
+        border-bottom: none;
+        overflow: visible;
+        flex-shrink: 0;
+      }
+      .ds-header {
+        display: none !important;
+      }
+      .ds-nav {
+        display: none !important;
+      }
+      .ds-divider {
+        display: none !important;
+      }
+      
+      /* Detail content full width */
+      .detail-content {
+        flex: 1;
+        min-height: 0;
+        width: 100% !important;
+      }
+      .detail-title-bar {
+        padding: 12px 14px 10px;
+      }
+      .detail-title-bar h1 {
+        font-size: 1rem;
+      }
+      .detail-title-bar .breadcrumb {
+        font-size: .7rem;
+        flex-wrap: wrap;
+      }
+      .action-bar {
+        padding: 8px 14px;
+        gap: 4px;
+      }
+      .action-btn {
+        padding: 5px 8px;
+        font-size: .75rem;
+      }
+      .essentials {
+        padding: 12px 14px;
+      }
+      .essentials-grid {
+        grid-template-columns: 1fr;
+      }
+      .ess-item:nth-child(odd) {
+        padding-right: 0;
+      }
+      .ess-item:nth-child(even) {
+        padding-left: 0;
+        border-left: none;
+      }
+      .detail-section {
+        padding: 14px;
+      }
+      .detail-body {
+        padding: 14px;
+      }
+      .prop-table {
+        font-size: .76rem;
+      }
+      .prop-table .pk {
+        width: 120px;
+      }
+      
+      /* Header adjustments */
+      .navmenu ul {
+        gap: .75rem;
+      }
+      .navmenu a {
+        font-size: .78rem;
+      }
+    }
+
+    /* ── Responsive: Small Mobile (< 480px) ───────────── */
+    @media (max-width: 479px) {
+      .sitename {
+        font-size: 1.2rem;
+      }
+      .navmenu ul {
+        gap: .5rem;
+      }
+      .navmenu a {
+        font-size: .72rem;
+      }
+      .detail-title-bar h1 {
+        font-size: .95rem;
+      }
+      .action-btn span {
+        display: none;
+      }
+      .action-btn i {
+        margin: 0;
+      }
+    }
+
+    {% block extra_css %}{% endblock %}
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────── -->
+<header class="header d-flex align-items-center fixed-top">
+  <div class="container-fluid d-flex align-items-center justify-content-between px-4">
+    <a href="/" class="text-decoration-none d-flex align-items-center">
+      <div class="site-logo"></div>
+      <h1 class="sitename">ITlusions</h1>
+      <span class="text-white ms-1">.</span>
+    </a>
+    <nav class="navmenu">
+      <ul>
+        {% block nav_items %}
+        <li><a href="/">Dashboard</a></li>
+        <li><a href="/resources/subscriptions">Resources</a></li>
+        <li><a href="/infra" class="active">Infrastructure</a></li>
+        <li><a href="http://localhost:7474" target="_blank">Graph API</a></li>
+        <li><a href="http://localhost:9050/docs" target="_blank">Infra API</a></li>
+        {% endblock %}
+      </ul>
+    </nav>
+    <div class="d-flex align-items-center gap-2">
+      {% if user %}
+        <span class="text-white d-none d-md-inline" style="font-size:.85rem;">
+          <i class="bi bi-person-circle me-1"></i>{{ user.name or user.email or user.username }}
+        </span>
+        <a href="/logout" class="btn btn-outline-light btn-sm d-none d-md-inline-flex" style="font-size:.78rem;">
+          <i class="bi bi-box-arrow-right me-1"></i>Logout
+        </a>
+      {% else %}
+        <span class="text-white d-none d-md-inline" style="font-size:.85rem;">Admin</span>
+        <a href="/logout" class="btn btn-outline-light btn-sm d-none d-md-inline-flex" style="font-size:.78rem;">Logout</a>
+      {% endif %}
+      <button class="header-mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle menu">
+        <i class="bi bi-list"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Navigation -->
+<div class="mobile-nav-overlay" id="mobileNavOverlay" onclick="closeMobileNav()"></div>
+<nav class="mobile-nav" id="mobileNav">
+  <div class="mobile-nav-section">Navigation</div>
+  <a href="/" class="mobile-nav-item"><i class="bi bi-speedometer2"></i>Dashboard</a>
+  <a href="/resources/subscriptions" class="mobile-nav-item"><i class="bi bi-collection"></i>Resources</a>
+  <a href="/infra" class="mobile-nav-item"><i class="bi bi-server"></i>Infrastructure</a>
+  <a href="/activity-logs" class="mobile-nav-item"><i class="bi bi-clock-history"></i>Activity Logs</a>
+  
+  <div class="mobile-nav-section">External Tools</div>
+  <a href="http://localhost:7474" target="_blank" class="mobile-nav-item"><i class="bi bi-diagram-3"></i>Graph API (Neo4j)</a>
+  <a href="http://localhost:9050/docs" target="_blank" class="mobile-nav-item"><i class="bi bi-code-square"></i>Infra API</a>
+  <a href="http://localhost:8978" target="_blank" class="mobile-nav-item"><i class="bi bi-database"></i>CloudBeaver</a>
+  
+  <div class="mobile-nav-section">Account</div>
+  {% if user %}
+    <div class="mobile-nav-item" style="background:#f8f9fa;"><i class="bi bi-person-circle"></i>{{ user.name or user.email or user.username }}</div>
+    <a href="/logout" class="mobile-nav-item"><i class="bi bi-box-arrow-right"></i>Logout</a>
+  {% else %}
+    <div class="mobile-nav-item" style="background:#f8f9fa;"><i class="bi bi-person-circle"></i>Admin</div>
+    <a href="/logout" class="mobile-nav-item"><i class="bi bi-box-arrow-right"></i>Logout</a>
+  {% endif %}
+</nav>
+
+<!-- ── 3-Pane Layout ──────────────────────────────────── -->
+<div class="page-wrapper">
+
+  <!-- Left Pane -->
+  <div class="list-pane" id="listPane">
+    {% block list_pane %}{% endblock %}
+  </div>
+
+  <!-- Middle Pane: Detail Sidebar -->
+  <div class="detail-sidebar">
+    <!-- Mobile header bar with back button and section menu -->
+    <div class="mobile-header-bar">
+      <a href="{% block back_url %}/{% endblock %}" class="mobile-back-btn" id="mobileBackBtn">
+        <i class="bi bi-chevron-left"></i>
+        <span>Back to list</span>
+      </a>
+      <div class="mobile-section-menu">
+        <button class="section-menu-toggle" id="sectionMenuToggle" onclick="toggleSectionMenu(event)">
+          <i class="bi bi-list"></i>
+          <span id="currentSectionLabel">Section</span>
+        </button>
+        <div class="section-menu-dropdown" id="sectionMenuDropdown">
+          {% block mobile_section_menu %}{% endblock %}
+        </div>
+      </div>
+    </div>
+    {% block detail_sidebar %}{% endblock %}
+  </div>
+
+  <!-- Right Pane: Detail Content -->
+  <div class="detail-content">
+    {% block detail_content %}{% endblock %}
+  </div>
+
+</div><!-- /page-wrapper -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Main header mobile nav functions
+  function toggleMobileNav() {
+    const nav = document.getElementById('mobileNav');
+    const overlay = document.getElementById('mobileNavOverlay');
+    const isOpen = nav.classList.contains('show');
+    
+    if (isOpen) {
+      closeMobileNav();
+    } else {
+      nav.classList.add('show');
+      overlay.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+  
+  function closeMobileNav() {
+    const nav = document.getElementById('mobileNav');
+    const overlay = document.getElementById('mobileNavOverlay');
+    nav.classList.remove('show');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  
+  // Close mobile nav on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMobileNav();
+  });
+  
+  // Close mobile nav on window resize to desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768) closeMobileNav();
+  });
+
+  // Section menu toggle (for detail page sections)
+  function toggleSectionMenu(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('sectionMenuDropdown');
+    dropdown.classList.toggle('show');
+  }
+  
+  // Close section dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('sectionMenuDropdown');
+    const toggle = document.getElementById('sectionMenuToggle');
+    if (dropdown && toggle && !toggle.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.remove('show');
+    }
+  });
+  
+  // Update current section label based on active link
+  document.addEventListener('DOMContentLoaded', function() {
+    const activeLink = document.querySelector('.ds-nav li a.active') || document.querySelector('.section-menu-dropdown a.active');
+    if (activeLink) {
+      const label = document.getElementById('currentSectionLabel');
+      if (label) {
+        label.textContent = activeLink.textContent.trim();
+      }
+    }
+  });
+  
+  // Close section menu dropdown
+  function closeSectionMenu() {
+    const dropdown = document.getElementById('sectionMenuDropdown');
+    if (dropdown) dropdown.classList.remove('show');
+  }
+  
+  // Update section label
+  function updateSectionLabel(text) {
+    const label = document.getElementById('currentSectionLabel');
+    if (label) label.textContent = text;
+  }
+  
+  // Mobile navigation: show list pane
+  function showListPane(e) {
+    if (e) e.preventDefault();
+    const listPane = document.getElementById('listPane');
+    listPane.classList.add('show-mobile');
+  }
+  
+  // Mobile navigation: hide list pane (when item clicked)
+  function hideListPane() {
+    const listPane = document.getElementById('listPane');
+    listPane.classList.remove('show-mobile');
+  }
+  
+  // Auto-hide list pane on mobile when navigating to detail
+  document.addEventListener('DOMContentLoaded', function() {
+    // On mobile, hide list after item click
+    const listItems = document.querySelectorAll('.list-pane .list-item');
+    listItems.forEach(item => {
+      item.addEventListener('click', function() {
+        if (window.innerWidth < 768) {
+          setTimeout(hideListPane, 100);
+        }
+      });
+    });
+  });
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

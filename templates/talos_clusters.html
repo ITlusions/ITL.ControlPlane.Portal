@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block title %}Secure Talos Clusters - ITlusions Control Plane{% endblock %}
+
+{% block extra_css %}
+    /* ── Grid View ───────────────────────────────────────────── */
+    .grid-view {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      padding: 20px 24px;
+    }
+    .grid-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+      transition: box-shadow .2s, border-color .2s;
+      cursor: pointer;
+    }
+    .grid-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); border-color: var(--orange-accent); }
+    .grid-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    .grid-card-header .card-name {
+      font-weight: 600; font-size: .95rem; color: #222;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .grid-card-body { padding: 12px 16px; }
+    .grid-card-body .info-row {
+      display: flex; justify-content: space-between;
+      padding: 4px 0; font-size: .8rem;
+    }
+    .grid-card-body .info-row .label { color: #888; }
+    .grid-card-body .info-row .value { color: #333; font-weight: 500; }
+    .grid-card-footer {
+      display: flex; gap: 8px; padding: 10px 16px;
+      border-top: 1px solid #eee; background: #fafafa;
+    }
+    .grid-card-footer .tag {
+      font-size: .7rem; padding: 2px 8px; border-radius: 10px;
+      background: #e5e7eb; color: #555;
+    }
+    
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+    }
+    .status-dot.healthy { background: #10b981; }
+    .status-dot.warning { background: #f59e0b; }
+    .status-dot.error { background: #ef4444; }
+{% endblock %}
+
+{% block page_content %}
+      <!-- Page Title Bar -->
+      <div class="page-title-bar">
+        <div class="d-flex align-items-center gap-2">
+          <nav aria-label="breadcrumb" style="font-size:.8rem;">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Home</a></li>
+              <li class="breadcrumb-item active">Secure Talos Clusters</li>
+            </ol>
+          </nav>
+        </div>
+        <h1><i class="bi bi-shield-lock me-2" style="font-size:1.1rem;"></i>Compute | Secure Talos Clusters</h1>
+        <div class="subtitle">Kubernetes clusters running on Talos Linux - immutable, secure, minimal</div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button class="tb-btn primary" onclick="createCluster()"><i class="bi-plus-lg"></i> Create</button>
+        <button class="tb-btn" onclick="location.reload()"><i class="bi-arrow-clockwise"></i> Refresh</button>
+        <button class="tb-btn" onclick="exportCSV()"><i class="bi-download"></i> Export CSV</button>
+        <div class="tb-sep"></div>
+        <div class="view-toggle">
+          <button id="viewList" class="active" onclick="setView('list')"><i class="bi-list-ul"></i> List</button>
+          <button id="viewGrid" onclick="setView('grid')"><i class="bi-grid-3x3-gap"></i> Grid</button>
+        </div>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span style="font-size:.78rem;color:#888;">Group by</span>
+          <select id="groupBy" onchange="applyGroupBy()" style="font-size:.8rem;padding:4px 8px;border:1px solid #ccc;border-radius:4px;">
+            <option value="none">none</option>
+            <option value="region">Region</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <i class="bi-funnel" style="font-size:.85rem;color:#888;"></i>
+        <input type="text" id="filterInput" class="filter-input" placeholder="Filter for any field..." onkeyup="filterTable()">
+        <select id="statusFilter" onchange="filterTable()">
+          <option value="">Status: all</option>
+          <option value="healthy">Healthy</option>
+          <option value="warning">Warning</option>
+          <option value="error">Error</option>
+        </select>
+        <select id="regionFilter" onchange="filterTable()">
+          <option value="">Region: all</option>
+          {% set regions = [] %}
+          {% for cluster in clusters %}
+            {% if cluster.region not in regions %}
+              {% set _ = regions.append(cluster.region) %}
+              <option value="{{ cluster.region }}">{{ cluster.region }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <div class="ms-auto" style="font-size:.8rem;color:#666;">
+          Showing <strong id="visibleCount">{{ clusters|length }}</strong> of <strong>{{ clusters|length }}</strong>
+        </div>
+      </div>
+
+      <!-- Data Table (List View) -->
+      <div class="data-table-wrapper" id="listView">
+        {% if clusters %}
+        <table class="data-table" id="resourceTable">
+          <thead>
+            <tr>
+              <th onclick="sortTable('name')" data-key="name">Name <span class="sort-icon">↕</span></th>
+              <th onclick="sortTable('status')" data-key="status">Status <span class="sort-icon">↕</span></th>
+              <th onclick="sortTable('nodes')" data-key="nodes">Nodes <span class="sort-icon">↕</span></th>
+              <th onclick="sortTable('pods')" data-key="pods">Pods <span class="sort-icon">↕</span></th>
+              <th onclick="sortTable('k8s_version')" data-key="k8s_version">K8s Version <span class="sort-icon">↕</span></th>
+              <th onclick="sortTable('talos_version')" data-key="talos_version">Talos Version <span class="sort-icon">↕</span></th>
+              <th onclick="sortTable('region')" data-key="region">Region <span class="sort-icon">↕</span></th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            {% for cluster in clusters %}
+            <tr data-name="{{ cluster.name }}" data-status="{{ cluster.status }}" data-region="{{ cluster.region }}" data-nodes="{{ cluster.nodes }}" data-pods="{{ cluster.pods }}" data-k8s="{{ cluster.k8s_version }}" data-talos="{{ cluster.talos_version }}">
+              <td>
+                <a href="/talos-clusters/{{ cluster.name }}" class="resource-link">
+                  <i class="bi bi-shield-lock me-1" style="font-size:.8rem;opacity:.5;"></i>{{ cluster.name }}
+                </a>
+              </td>
+              <td>
+                {% if cluster.status == 'healthy' %}
+                  <span class="status-badge success">{{ cluster.status }}</span>
+                {% elif cluster.status == 'warning' %}
+                  <span class="status-badge warning">{{ cluster.status }}</span>
+                {% else %}
+                  <span class="status-badge secondary">{{ cluster.status }}</span>
+                {% endif %}
+              </td>
+              <td>{{ cluster.nodes }}</td>
+              <td>{{ cluster.pods }}</td>
+              <td><code style="font-size:.78rem;color:#888;">{{ cluster.k8s_version }}</code></td>
+              <td><code style="font-size:.78rem;color:#888;">{{ cluster.talos_version }}</code></td>
+              <td><span class="tenant-badge">{{ cluster.region }}</span></td>
+              <td>
+                <button class="ellipsis-btn" title="More actions" onclick="event.stopPropagation(); window.location='/talos-clusters/{{ cluster.name }}'">⋯</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi-inbox"></i>
+          <h5>No clusters found</h5>
+          <p>There are no Talos clusters to display.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Grid View -->
+      <div class="grid-view" id="gridView" style="display:none;">
+        {% for cluster in clusters %}
+        <div class="grid-card" data-name="{{ cluster.name }}" data-status="{{ cluster.status }}" data-region="{{ cluster.region }}" onclick="window.location='/talos-clusters/{{ cluster.name }}'">
+          <div class="grid-card-header">
+            <span class="card-name">
+              <span class="status-dot {{ cluster.status }}"></span>
+              {{ cluster.name }}
+            </span>
+            <button class="ellipsis-btn" onclick="event.stopPropagation();">⋯</button>
+          </div>
+          <div class="grid-card-body">
+            <div class="info-row">
+              <span class="label">Status</span>
+              <span class="value">{{ cluster.status | capitalize }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Nodes</span>
+              <span class="value">{{ cluster.nodes }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Pods</span>
+              <span class="value">{{ cluster.pods }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">K8s Version</span>
+              <span class="value">{{ cluster.k8s_version }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Talos Version</span>
+              <span class="value">{{ cluster.talos_version }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">CPU Usage</span>
+              <span class="value">{{ cluster.cpu_usage }}%</span>
+            </div>
+          </div>
+          <div class="grid-card-footer">
+            <span class="tag">{{ cluster.region }}</span>
+            <span class="tag">{{ cluster.created }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if clusters %}
+      <div class="pagination-bar">
+        <div>
+          Showing <strong id="pageRange">1 – {{ [clusters|length, 25] | min }}</strong> of <strong>{{ clusters|length }}</strong>.
+          Display count:
+          <select id="pageSize" onchange="changePage(1)" style="font-size:.8rem;padding:2px 6px;border:1px solid #ccc;border-radius:4px;">
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="0">All</option>
+          </select>
+        </div>
+        <div class="page-numbers" id="pageNumbers"></div>
+      </div>
+      {% endif %}
+{% endblock %}
+
+{% block footer %}
+&copy; 2026 ITlusions Control Plane. All rights reserved.
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentPage = 1;
+    let sortKey = '';
+    let sortAsc = true;
+    let currentView = 'list';
+
+    function getRows() { return Array.from(document.querySelectorAll('#tableBody tr')); }
+    function getCards() { return Array.from(document.querySelectorAll('.grid-card')); }
+
+    function setView(view) {
+      currentView = view;
+      document.getElementById('viewList').classList.toggle('active', view === 'list');
+      document.getElementById('viewGrid').classList.toggle('active', view === 'grid');
+      document.getElementById('listView').style.display = view === 'list' ? '' : 'none';
+      document.getElementById('gridView').style.display = view === 'grid' ? '' : 'none';
+      localStorage.setItem('talos-view', view);
+    }
+
+    function filterTable() {
+      const text = (document.getElementById('filterInput').value || '').toLowerCase();
+      const statusSel = document.getElementById('statusFilter');
+      const regionSel = document.getElementById('regionFilter');
+      const status = statusSel ? statusSel.value : '';
+      const region = regionSel ? regionSel.value : '';
+
+      let visible = 0;
+      getRows().forEach(row => {
+        const rowText = row.textContent.toLowerCase();
+        const rowStatus = row.dataset.status || '';
+        const rowRegion = row.dataset.region || '';
+        let show = rowText.includes(text);
+        if (show && status) show = rowStatus === status;
+        if (show && region) show = rowRegion === region;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      
+      getCards().forEach(card => {
+        const cardText = card.textContent.toLowerCase();
+        const cardStatus = card.dataset.status || '';
+        const cardRegion = card.dataset.region || '';
+        let show = cardText.includes(text);
+        if (show && status) show = cardStatus === status;
+        if (show && region) show = cardRegion === region;
+        card.style.display = show ? '' : 'none';
+      });
+      
+      document.getElementById('visibleCount').textContent = visible;
+      changePage(1);
+    }
+
+    function sortTable(key) {
+      if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+
+      const tbody = document.getElementById('tableBody');
+      const rows = getRows();
+      rows.sort((a, b) => {
+        let va = a.dataset[key] || a.querySelector(`td:nth-child(${getColIndex(key)})`)?.textContent || '';
+        let vb = b.dataset[key] || b.querySelector(`td:nth-child(${getColIndex(key)})`)?.textContent || '';
+        if (['nodes', 'pods'].includes(key)) {
+          va = parseInt(va) || 0;
+          vb = parseInt(vb) || 0;
+          return sortAsc ? va - vb : vb - va;
+        }
+        return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      });
+      rows.forEach(r => tbody.appendChild(r));
+
+      document.querySelectorAll('.data-table thead th').forEach(th => {
+        const icon = th.querySelector('.sort-icon');
+        if (icon) icon.textContent = th.dataset.key === key ? (sortAsc ? '↑' : '↓') : '↕';
+      });
+      changePage(1);
+    }
+
+    function getColIndex(key) {
+      const keys = ['name', 'status', 'nodes', 'pods', 'k8s_version', 'talos_version', 'region'];
+      return keys.indexOf(key) + 1;
+    }
+
+    function changePage(page) {
+      const size = parseInt(document.getElementById('pageSize').value) || 0;
+      const rows = getRows().filter(r => r.style.display !== 'none');
+      const total = rows.length;
+      const pages = size > 0 ? Math.ceil(total / size) : 1;
+      currentPage = Math.max(1, Math.min(page, pages));
+
+      rows.forEach((r, i) => {
+        if (size === 0) { r.style.display = ''; return; }
+        const inPage = i >= (currentPage - 1) * size && i < currentPage * size;
+        r.style.display = inPage ? '' : 'none';
+      });
+
+      const start = size > 0 ? (currentPage - 1) * size + 1 : 1;
+      const end = size > 0 ? Math.min(currentPage * size, total) : total;
+      document.getElementById('pageRange').textContent = `${start} – ${end}`;
+
+      const pnums = document.getElementById('pageNumbers');
+      pnums.innerHTML = '';
+      for (let p = 1; p <= pages; p++) {
+        const btn = document.createElement('button');
+        btn.textContent = p;
+        btn.className = p === currentPage ? 'active' : '';
+        btn.onclick = () => changePage(p);
+        pnums.appendChild(btn);
+      }
+    }
+
+    function applyGroupBy() {
+      // Placeholder for grouping functionality
+    }
+
+    function exportCSV() {
+      const rows = getRows();
+      let csv = 'Name,Status,Nodes,Pods,K8s Version,Talos Version,Region\n';
+      rows.forEach(row => {
+        const vals = [
+          row.dataset.name,
+          row.dataset.status,
+          row.dataset.nodes,
+          row.dataset.pods,
+          row.dataset.k8s,
+          row.dataset.talos,
+          row.dataset.region
+        ];
+        csv += vals.map(v => `"${v || ''}"`).join(',') + '\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'talos-clusters.csv';
+      a.click();
+    }
+
+    function createCluster() {
+      alert('Create Talos Cluster wizard coming soon!');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      changePage(1);
+      // Restore view preference
+      const savedView = localStorage.getItem('talos-view');
+      if (savedView) setView(savedView);
+    });
+  </script>
+{% endblock %}

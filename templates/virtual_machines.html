@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Virtual Machines - ITlusions Control Plane</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --header-bg: #3e3e3e;
+      --orange-accent: #ffa500;
+      --sidebar-bg: #f5f5f5;
+      --sidebar-width: 240px;
+      --sidebar-hover: #e8e8e8;
+      --sidebar-active: #e0e7ff;
+      --sidebar-active-text: #3b5998;
+      --toolbar-border: #e0e0e0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #fff;
+      margin: 0;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      background-color: var(--header-bg);
+      padding: 0.75rem 0;
+      position: fixed; top: 0; width: 100%; z-index: 1000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .sitename { color: #fff; font-weight: 700; font-size: 1.5rem; margin: 0; }
+    .site-logo { width: 28px; height: 28px; background: #ffd700; border-radius: 4px; margin-right: 10px; flex-shrink: 0; }
+    .navmenu ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 1.5rem; }
+    .navmenu a { color: rgba(255,255,255,.8); text-decoration: none; font-size: .9rem; transition: color .3s; }
+    .navmenu a:hover { color: #fff; }
+    .navmenu a.active { color: var(--orange-accent); }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .page-wrapper { display: flex; margin-top: 56px; min-height: calc(100vh - 56px); }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      border-right: 1px solid #e0e0e0;
+      padding: 0;
+      overflow-y: auto;
+      position: relative;
+      height: calc(100vh - 56px);
+    }
+    .sidebar-search { padding: 12px 12px 8px; display: flex; gap: 6px; align-items: center; }
+    .sidebar-search input {
+      flex: 1; border: 1px solid #ccc; border-radius: 4px;
+      padding: 6px 10px; font-size: .85rem; background: #fff;
+    }
+    .sidebar-search input:focus { outline: none; border-color: var(--orange-accent); }
+    .sidebar-customize-btn {
+      background: none; border: 1px solid #ccc; border-radius: 4px;
+      padding: 6px 8px; cursor: pointer; color: #666;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-customize-btn:hover { background: #eee; color: #333; }
+    .sidebar-customize-btn.active { background: var(--orange-accent); color: #fff; border-color: var(--orange-accent); }
+
+    /* ── Customize Panel (inline) ────────────────────────────── */
+    .sidebar-customize-panel {
+      display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #fff; z-index: 100; flex-direction: column;
+    }
+    .sidebar-customize-panel.show { display: flex; }
+    .sidebar-panel-header {
+      padding: 12px 16px; border-bottom: 1px solid #eee;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fafafa;
+    }
+    .sidebar-panel-header h4 { margin: 0; font-size: .85rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 6px; }
+    .sidebar-panel-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #888; padding: 2px 6px; }
+    .sidebar-panel-close:hover { color: #333; }
+    .sidebar-panel-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .sidebar-panel-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      border-bottom: 1px solid #f5f5f5; cursor: grab; font-size: .8rem;
+    }
+    .sidebar-panel-item:hover { background: #f8f8f8; }
+    .sidebar-panel-item.dragging { opacity: .5; background: #e8f0fe; }
+    .sidebar-panel-item .drag-handle { color: #bbb; cursor: grab; font-size: .75rem; }
+    .sidebar-panel-item .cat-icon { width: 16px; text-align: center; color: #666; font-size: .8rem; }
+    .sidebar-panel-item .cat-label { flex: 1; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-panel-item .visibility-toggle {
+      position: relative; width: 32px; height: 18px; flex-shrink: 0;
+    }
+    .sidebar-panel-item .visibility-toggle input { opacity: 0; width: 0; height: 0; }
+    .sidebar-panel-item .visibility-toggle .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background: #ccc; border-radius: 18px; transition: .2s;
+    }
+    .sidebar-panel-item .visibility-toggle .slider:before {
+      position: absolute; content: ''; height: 12px; width: 12px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: .2s;
+    }
+    .sidebar-panel-item .visibility-toggle input:checked + .slider { background: var(--orange-accent); }
+    .sidebar-panel-item .visibility-toggle input:checked + .slider:before { transform: translateX(14px); }
+    .sidebar-panel-footer {
+      padding: 10px 12px; border-top: 1px solid #eee;
+      display: flex; gap: 8px;
+    }
+    .sidebar-panel-footer button {
+      padding: 6px 12px; border-radius: 4px; font-size: .8rem; cursor: pointer; flex: 1;
+    }
+    .sidebar-panel-footer .btn-reset { background: #f0f0f0; border: 1px solid #ccc; color: #333; }
+    .sidebar-panel-footer .btn-reset:hover { background: #e0e0e0; }
+    .sidebar-panel-footer .btn-save { background: var(--orange-accent); border: none; color: #fff; }
+    .sidebar-panel-footer .btn-save:hover { background: #e69500; }
+    .sidebar { position: relative; }
+    .sidebar-nav { list-style: none; margin: 0; padding: 0; }
+    .sidebar-nav .nav-header {
+      padding: 10px 16px 6px;
+      font-size: .8rem; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: .4px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+      transition: background .15s;
+    }
+    .sidebar-nav .nav-header:hover { background: var(--sidebar-hover); }
+    .sidebar-nav .nav-header .header-left { display: flex; align-items: center; gap: 6px; }
+    .sidebar-nav .nav-header .collapse-icon {
+      font-size: .7rem; color: #888; transition: transform .2s;
+    }
+    .sidebar-nav .nav-header.collapsed .collapse-icon { transform: rotate(-90deg); }
+    .sidebar-nav .nav-section {
+      overflow: hidden; transition: max-height .25s ease-out;
+    }
+    .sidebar-nav .nav-section.collapsed { max-height: 0 !important; }
+    .sidebar-nav .nav-divider { border-top: 1px solid #ddd; margin: 8px 12px; }
+    .sidebar-nav .nav-item a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 16px; text-decoration: none;
+      color: #333; font-size: .875rem;
+      border-left: 3px solid transparent;
+      transition: background .15s, border-color .15s;
+    }
+    .sidebar-nav .nav-item a:hover { background: var(--sidebar-hover); }
+    .sidebar-nav .nav-item a.active {
+      background: var(--sidebar-active);
+      border-left-color: var(--sidebar-active-text);
+      color: var(--sidebar-active-text);
+      font-weight: 600;
+    }
+    .sidebar-nav .nav-item a i { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* ── Content ────────────────────────────────────────────── */
+    .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    /* ── Page Title Bar ─────────────────────────────────────── */
+    .page-title-bar {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #fff;
+    }
+    .page-title-bar h1 { font-size: 1.35rem; font-weight: 600; margin: 0; color: #222; }
+    .page-title-bar .subtitle { font-size: .8rem; color: #888; margin-top: 2px; }
+
+    /* ── Toolbar ────────────────────────────────────────────── */
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #fafafa;
+    }
+    .toolbar .btn { font-size: .85rem; }
+    .toolbar .filter-wrapper { display: flex; gap: 8px; flex-wrap: wrap; }
+    .toolbar input, .toolbar select {
+      font-size: .85rem; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px;
+    }
+    .toolbar input:focus, .toolbar select:focus { outline: none; border-color: var(--orange-accent); }
+
+    /* ── VM Table ───────────────────────────────────────────── */
+    .table-area {
+      flex: 1; overflow-y: auto; padding: 20px 24px;
+      background: #f8f9fa;
+    }
+    .vm-table {
+      width: 100%;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+    }
+    .vm-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      font-size: .8rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      padding: 12px 16px;
+      border-bottom: 2px solid #e0e0e0;
+      text-align: left;
+    }
+    .vm-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: .875rem;
+      color: #333;
+      vertical-align: middle;
+    }
+    .vm-table tr:last-child td { border-bottom: none; }
+    .vm-table tr:hover td { background: #f8f9fa; }
+
+    .vm-name {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 600; color: #333;
+    }
+    .vm-name i { color: #0078d4; font-size: 1.2rem; }
+    .vm-name a { color: inherit; text-decoration: none; }
+    .vm-name a:hover { color: var(--orange-accent); }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .status-badge .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .status-badge.running { background: #d4edda; color: #155724; }
+    .status-badge.running .status-dot { background: #28a745; }
+    .status-badge.stopped { background: #f8d7da; color: #721c24; }
+    .status-badge.stopped .status-dot { background: #dc3545; }
+    .status-badge.starting { background: #fff3cd; color: #856404; }
+    .status-badge.starting .status-dot { background: #ffc107; }
+    .status-badge.deallocated { background: #e2e3e5; color: #383d41; }
+    .status-badge.deallocated .status-dot { background: #6c757d; }
+
+    .size-badge {
+      background: #e7f1ff;
+      color: #0056b3;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: .75rem;
+      font-weight: 500;
+    }
+
+    .os-icon {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .os-icon i { font-size: 1.1rem; }
+    .os-icon.linux i { color: #fcc624; }
+    .os-icon.windows i { color: #0078d4; }
+
+    .action-btns {
+      display: flex; gap: 6px;
+    }
+    .action-btns .btn {
+      padding: 4px 10px;
+      font-size: .75rem;
+    }
+
+    /* ── Empty State ────────────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: #888;
+    }
+    .empty-state i { font-size: 4rem; color: #ddd; margin-bottom: 16px; }
+    .empty-state h3 { color: #666; margin-bottom: 8px; }
+
+    /* ── Summary Cards ──────────────────────────────────────── */
+    .summary-strip {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      padding: 16px 24px;
+      background: #fff;
+      border-bottom: 1px solid var(--toolbar-border);
+    }
+    .summary-card {
+      flex: 1; min-width: 140px;
+      padding: 14px 18px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #ddd;
+    }
+    .summary-card.running { border-left-color: #28a745; }
+    .summary-card.stopped { border-left-color: #dc3545; }
+    .summary-card.total { border-left-color: #0078d4; }
+    .summary-card .value { font-size: 1.5rem; font-weight: 700; color: #333; }
+    .summary-card .label { font-size: .75rem; color: #888; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center">
+        <div class="site-logo"></div>
+        <h1 class="sitename">ITlusions Control Plane</h1>
+      </div>
+      <nav class="navmenu">
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/resources/all">Resources</a></li>
+          <li><a href="/virtual-machines" class="active">Compute</a></li>
+          <li><a href="/infra">Infrastructure</a></li>
+          <li><a href="/activity-logs">Monitoring</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<!-- Page Wrapper: Sidebar + Content -->
+<div class="page-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Customize Panel (inline) -->
+    <div class="sidebar-customize-panel" id="sidebarCustomizePanel">
+      <div class="sidebar-panel-header">
+        <h4><i class="bi bi-sliders"></i> Customize</h4>
+        <button class="sidebar-panel-close" onclick="closeSidebarCustomize()">&times;</button>
+      </div>
+      <div class="sidebar-panel-body" id="catList"></div>
+      <div class="sidebar-panel-footer">
+        <button class="btn-reset" onclick="resetSidebarPrefs()">Reset</button>
+        <button class="btn-save" onclick="saveSidebarCustomize()">Save</button>
+      </div>
+    </div>
+
+    <div class="sidebar-search">
+      <input type="text" placeholder="Search..." id="sidebarSearch">
+      <button class="sidebar-customize-btn" id="customizeBtn" onclick="openSidebarCustomize()" title="Customize sidebar">
+        <i class="bi bi-gear"></i>
+      </button>
+    </div>
+    <ul class="sidebar-nav" id="sidebarNav">
+      {% set ns = namespace(section_id='', in_section=false) %}
+      {% for item in sidebar_items %}
+        {% if item.get('is_header', False) and item.label %}
+          {% if ns.in_section %}</div>{% endif %}
+          {% set ns.section_id = item.label | lower | replace(' ', '-') | replace('/', '-') %}
+          <li class="nav-header" data-section="{{ ns.section_id }}" onclick="toggleSection('{{ ns.section_id }}')">
+            <span class="header-left"><i class="bi {{ item.icon }} me-1"></i>{{ item.label }}</span>
+            <i class="bi bi-chevron-down collapse-icon"></i>
+          </li>
+          <div class="nav-section" data-section="{{ ns.section_id }}">
+          {% set ns.in_section = true %}
+        {% elif item.get('is_divider', False) %}
+          <li class="nav-divider"></li>
+        {% else %}
+          <li class="nav-item">
+            <a href="{{ item.href }}" class="{{ 'active' if item.active else '' }}">
+              <i class="bi {{ item.icon }}"></i> {{ item.label }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      {% if ns.in_section %}</div>{% endif %}
+    </ul>
+  </aside>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Page Title Bar -->
+    <div class="page-title-bar">
+      <h1><i class="bi bi-pc-display me-2" style="color: var(--orange-accent);"></i>Virtual Machines</h1>
+      <div class="subtitle">Manage compute instances across your infrastructure</div>
+    </div>
+
+    <!-- Summary Strip -->
+    <div class="summary-strip">
+      <div class="summary-card total">
+        <div class="value">{{ summary.total }}</div>
+        <div class="label">Total VMs</div>
+      </div>
+      <div class="summary-card running">
+        <div class="value">{{ summary.running }}</div>
+        <div class="label">Running</div>
+      </div>
+      <div class="summary-card stopped">
+        <div class="value">{{ summary.stopped }}</div>
+        <div class="label">Stopped</div>
+      </div>
+      <div class="summary-card">
+        <div class="value">{{ summary.vcpus }}</div>
+        <div class="label">Total vCPUs</div>
+      </div>
+      <div class="summary-card">
+        <div class="value">{{ summary.memory_gb }} GB</div>
+        <div class="label">Total Memory</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Create VM</button>
+      <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+      <div class="ms-auto filter-wrapper">
+        <select id="filterStatus">
+          <option value="">All Status</option>
+          <option value="running">Running</option>
+          <option value="stopped">Stopped</option>
+          <option value="deallocated">Deallocated</option>
+        </select>
+        <select id="filterOS">
+          <option value="">All OS</option>
+          <option value="linux">Linux</option>
+          <option value="windows">Windows</option>
+        </select>
+        <input type="text" placeholder="Search VMs..." id="searchInput" style="width: 200px;">
+      </div>
+    </div>
+
+    <!-- VM Table -->
+    <div class="table-area">
+      {% if vms %}
+      <table class="vm-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>OS</th>
+            <th>Size</th>
+            <th>IP Address</th>
+            <th>Resource Group</th>
+            <th>Location</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vm in vms %}
+          <tr data-status="{{ vm.status }}" data-os="{{ vm.os_type }}">
+            <td>
+              <div class="vm-name">
+                <i class="bi bi-pc-display-horizontal"></i>
+                <a href="/virtual-machines/{{ vm.name }}">{{ vm.name }}</a>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge {{ vm.status }}">
+                <span class="status-dot"></span>
+                {{ vm.status | capitalize }}
+              </span>
+            </td>
+            <td>
+              <div class="os-icon {{ vm.os_type }}">
+                {% if vm.os_type == 'linux' %}
+                <i class="bi bi-ubuntu"></i>
+                {% else %}
+                <i class="bi bi-windows"></i>
+                {% endif %}
+                {{ vm.os_name }}
+              </div>
+            </td>
+            <td><span class="size-badge">{{ vm.size }}</span></td>
+            <td><code>{{ vm.ip_address }}</code></td>
+            <td>{{ vm.resource_group }}</td>
+            <td>{{ vm.location }}</td>
+            <td>
+              <div class="action-btns">
+                {% if vm.status == 'running' %}
+                <button class="btn btn-outline-warning btn-sm" title="Stop"><i class="bi bi-stop-fill"></i></button>
+                <button class="btn btn-outline-primary btn-sm" title="Connect"><i class="bi bi-terminal"></i></button>
+                {% else %}
+                <button class="btn btn-outline-success btn-sm" title="Start"><i class="bi bi-play-fill"></i></button>
+                {% endif %}
+                <button class="btn btn-outline-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-pc-display"></i>
+        <h3>No Virtual Machines</h3>
+        <p>Create your first virtual machine to get started</p>
+        <button class="btn btn-primary mt-3"><i class="bi bi-plus-lg me-1"></i>Create VM</button>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Sidebar Collapse ────────────────────────────────────────
+  const SIDEBAR_KEY = 'itl-sidebar-collapsed';
+
+  function getSidebarState() {
+    try { return JSON.parse(localStorage.getItem(SIDEBAR_KEY)) || {}; }
+    catch { return {}; }
+  }
+
+  function saveSidebarState(state) {
+    localStorage.setItem(SIDEBAR_KEY, JSON.stringify(state));
+  }
+
+  function toggleSection(sectionId) {
+    const header = document.querySelector(`.nav-header[data-section="${sectionId}"]`);
+    const section = document.querySelector(`.nav-section[data-section="${sectionId}"]`);
+    if (!header || !section) return;
+
+    const isCollapsed = header.classList.toggle('collapsed');
+    section.classList.toggle('collapsed', isCollapsed);
+
+    const state = getSidebarState();
+    state[sectionId] = isCollapsed;
+    saveSidebarState(state);
+  }
+
+  function initSidebarState() {
+    const state = getSidebarState();
+    document.querySelectorAll('.nav-section').forEach(section => {
+      const sectionId = section.dataset.section;
+      const header = document.querySelector(`.nav-header[data-section="${sectionId}"]`);
+      if (!header) return;
+      section.style.maxHeight = section.scrollHeight + 'px';
+      if (state[sectionId]) {
+        header.classList.add('collapsed');
+        section.classList.add('collapsed');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initSidebarState);
+
+  // ── Sidebar Customization ────────────────────────────────────
+  const SIDEBAR_PREFS_KEY = 'itl-sidebar-prefs';
+  let categoryOrder = [];
+  let categoryVisibility = {};
+
+  function getSidebarPrefs() {
+    try { return JSON.parse(localStorage.getItem(SIDEBAR_PREFS_KEY)) || { order: [], visibility: {} }; }
+    catch { return { order: [], visibility: {} }; }
+  }
+
+  function saveSidebarPrefs(prefs) {
+    localStorage.setItem(SIDEBAR_PREFS_KEY, JSON.stringify(prefs));
+  }
+
+  function getCategories() {
+    const cats = [];
+    document.querySelectorAll('.nav-header[data-section]').forEach(header => {
+      const sectionId = header.dataset.section;
+      const icon = header.querySelector('i.bi')?.className.replace('bi ', '').replace(' me-1', '') || 'bi-folder';
+      const label = header.querySelector('.header-left')?.textContent.trim() || sectionId;
+      cats.push({ id: sectionId, icon, label });
+    });
+    return cats;
+  }
+
+  function openSidebarCustomize() {
+    const categories = getCategories();
+    const prefs = getSidebarPrefs();
+    let orderedCats = categories;
+    if (prefs.order && prefs.order.length > 0) {
+      const catMap = Object.fromEntries(categories.map(c => [c.id, c]));
+      orderedCats = prefs.order.filter(id => catMap[id]).map(id => catMap[id]);
+      categories.forEach(c => { if (!prefs.order.includes(c.id)) orderedCats.push(c); });
+    }
+    categoryOrder = orderedCats.map(c => c.id);
+    categoryVisibility = { ...prefs.visibility };
+    const itemsHtml = orderedCats.map(cat => {
+      const visible = categoryVisibility[cat.id] !== false;
+      return `
+        <div class="sidebar-panel-item" draggable="true" data-cat-id="${cat.id}">
+          <i class="bi bi-grip-vertical drag-handle"></i>
+          <i class="bi ${cat.icon} cat-icon"></i>
+          <span class="cat-label">${cat.label}</span>
+          <label class="visibility-toggle">
+            <input type="checkbox" ${visible ? 'checked' : ''} onchange="toggleCatVisibility('${cat.id}', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('catList').innerHTML = itemsHtml;
+    document.getElementById('sidebarCustomizePanel').classList.add('show');
+    document.getElementById('customizeBtn').classList.add('active');
+    initDragAndDrop();
+  }
+
+  function closeSidebarCustomize() {
+    document.getElementById('sidebarCustomizePanel').classList.remove('show');
+    document.getElementById('customizeBtn').classList.remove('active');
+  }
+
+  function toggleCatVisibility(catId, visible) {
+    categoryVisibility[catId] = visible;
+  }
+
+  function initDragAndDrop() {
+    const list = document.getElementById('catList');
+    let draggedItem = null;
+    list.querySelectorAll('.sidebar-panel-item').forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        draggedItem = item;
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        draggedItem = null;
+        categoryOrder = [...list.querySelectorAll('.sidebar-panel-item')].map(i => i.dataset.catId);
+      });
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (draggedItem && draggedItem !== item) {
+          const rect = item.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if (e.clientY < midY) {
+            list.insertBefore(draggedItem, item);
+          } else {
+            list.insertBefore(draggedItem, item.nextSibling);
+          }
+        }
+      });
+    });
+  }
+
+  function saveSidebarCustomize() {
+    const prefs = { order: categoryOrder, visibility: categoryVisibility };
+    saveSidebarPrefs(prefs);
+    applySidebarPrefs();
+    closeSidebarCustomize();
+  }
+
+  function resetSidebarPrefs() {
+    localStorage.removeItem(SIDEBAR_PREFS_KEY);
+    location.reload();
+  }
+
+  function applySidebarPrefs() {
+    const prefs = getSidebarPrefs();
+    const nav = document.getElementById('sidebarNav');
+    if (!nav) return;
+    
+    // Build category info including dividers
+    const categories = [];
+    nav.querySelectorAll('.nav-header[data-section]').forEach(header => {
+      const sectionId = header.dataset.section;
+      const section = nav.querySelector(`.nav-section[data-section="${sectionId}"]`);
+      const divider = header.previousElementSibling?.classList.contains('nav-divider') ? header.previousElementSibling : null;
+      categories.push({ id: sectionId, header, section, divider });
+    });
+    const catMap = Object.fromEntries(categories.map(c => [c.id, c]));
+    
+    // Apply visibility (including dividers)
+    Object.entries(prefs.visibility || {}).forEach(([catId, visible]) => {
+      const cat = catMap[catId];
+      if (!cat) return;
+      const display = visible === false ? 'none' : '';
+      if (cat.header) cat.header.style.display = display;
+      if (cat.section) cat.section.style.display = display;
+      if (cat.divider) cat.divider.style.display = display;
+    });
+    
+    // Apply order
+    if (prefs.order && prefs.order.length > 0) {
+      const orderedIds = [...prefs.order];
+      categories.forEach(c => { if (!orderedIds.includes(c.id)) orderedIds.push(c.id); });
+      orderedIds.forEach((id, index) => {
+        const cat = catMap[id];
+        if (cat) {
+          // Add divider only if not first visible item
+          if (index > 0 && cat.divider) nav.appendChild(cat.divider);
+          nav.appendChild(cat.header);
+          if (cat.section) nav.appendChild(cat.section);
+        }
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', applySidebarPrefs);
+
+  // ── Search/Filter ────────────────────────────────────────────
+  document.getElementById('searchInput')?.addEventListener('input', filterTable);
+  document.getElementById('filterStatus')?.addEventListener('change', filterTable);
+  document.getElementById('filterOS')?.addEventListener('change', filterTable);
+
+  function filterTable() {
+    const term = document.getElementById('searchInput')?.value.toLowerCase() || '';
+    const status = document.getElementById('filterStatus')?.value || '';
+    const os = document.getElementById('filterOS')?.value || '';
+
+    document.querySelectorAll('.vm-table tbody tr').forEach(row => {
+      const name = row.querySelector('.vm-name')?.textContent.toLowerCase() || '';
+      const rowStatus = row.dataset.status || '';
+      const rowOS = row.dataset.os || '';
+
+      const matchName = name.includes(term);
+      const matchStatus = !status || rowStatus === status;
+      const matchOS = !os || rowOS === os;
+
+      row.style.display = (matchName && matchStatus && matchOS) ? '' : 'none';
+    });
+  }
+</script>
+</body>
+</html>

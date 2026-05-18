@@ -1,0 +1,27 @@
+{# Platform Stats Widget #}
+<div class="row">
+  <div class="col-md-2 col-4 stat-box">
+    <div class="number">{{ widget_data.stats.tenants or 0 }}</div>
+    <div class="label">Tenants</div>
+  </div>
+  <div class="col-md-2 col-4 stat-box">
+    <div class="number">{{ widget_data.stats.management_groups or 0 }}</div>
+    <div class="label">Mgmt Groups</div>
+  </div>
+  <div class="col-md-2 col-4 stat-box">
+    <div class="number">{{ widget_data.stats.subscriptions or 0 }}</div>
+    <div class="label">Subscriptions</div>
+  </div>
+  <div class="col-md-2 col-4 stat-box">
+    <div class="number">{{ widget_data.stats.resource_groups or 0 }}</div>
+    <div class="label">Resource Groups</div>
+  </div>
+  <div class="col-md-2 col-4 stat-box">
+    <div class="number">{{ widget_data.stats.locations or 0 }}</div>
+    <div class="label">Locations</div>
+  </div>
+  <div class="col-md-2 col-4 stat-box">
+    <div class="number">{{ widget_data.stats.providers or 1 }}</div>
+    <div class="label">Providers</div>
+  </div>
+</div>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  
+  <title>Control Plane Dashboard - ITlusions</title>
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-color: #0d6efd;
+      --secondary-color: #6c757d;
+      --accent-color: #28a745;
+      --warning-color: #ffc107;
+      --info-color: #0dcaf0;
+      --background-color: #ffffff;
+      --header-bg: #3e3e3e;
+      --orange-accent: #ffa500;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background-color);
+    }
+    
+    .header {
+      background-color: var(--header-bg);
+      padding: 1rem 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+    }
+    
+    .sitename {
+      color: white;
+      font-weight: 700;
+      font-size: 1.75rem;
+      margin: 0;
+    }
+    
+    .site-logo {
+      width: 28px;
+      height: 28px;
+      background: #ffd700;
+      border-radius: 4px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    
+    .navmenu ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 2rem;
+    }
+    
+    .navmenu a {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 1rem;
+      transition: color 0.3s;
+    }
+    
+    .navmenu a:hover {
+      color: white;
+    }
+    
+    .navmenu a.active {
+      color: var(--orange-accent);
+    }
+    
+    .main {
+      margin-top: 100px;
+      padding: 2rem 0;
+    }
+    
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 0.5rem;
+    }
+    
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    
+    .stat-card {
+      text-align: center;
+      height: 130px;
+      cursor: pointer;
+    }
+    
+    a .stat-card:hover {
+      border-color: var(--orange-accent) !important;
+    }
+    
+    .stat-card .card-body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      padding: 1rem 0.5rem;
+    }
+    
+    .stat-number {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #333;
+      line-height: 1;
+    }
+    
+    .stat-label {
+      color: #6c757d;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      font-weight: 500;
+      line-height: 1.1;
+      margin-top: 0.5rem;
+      white-space: nowrap;
+    }
+    
+    .tenant-card {
+      border-left: 4px solid;
+    }
+    
+    .tenant-itl { border-left-color: var(--primary-color); }
+    .tenant-contoso { border-left-color: var(--accent-color); }
+    .tenant-fabrikam { border-left-color: #ffc107; }
+    
+    .badge {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.75rem;
+      border-radius: 12px;
+    }
+    
+    .resource-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .resource-item {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e9ecef;
+      transition: background-color 0.2s;
+    }
+    
+    .resource-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .footer {
+      background-color: var(--header-bg);
+      color: rgba(255, 255, 255, 0.8);
+      padding: 2rem 0;
+      margin-top: 4rem;
+    }
+    
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 1.5rem;
+    }
+  </style>
+</head>
+
+<body class="page-dashboard">
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
+
+      <a href="/" class="logo d-flex align-items-center me-auto me-lg-0">
+        <div class="site-logo"></div>
+        <h1 class="sitename">ITlusions</h1>
+        <span class="text-white ms-1">.</span>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="/" class="active">Dashboard</a></li>
+          <li><a href="http://localhost:8978" target="_blank">CloudBeaver</a></li>
+          <li><a href="http://localhost:7474" target="_blank">Neo4j</a></li>
+          <li><a href="http://localhost:8081/docs" target="_blank">Gateway</a></li>
+        </ul>
+      </nav>
+
+      <div class="user-auth d-flex align-items-center">
+        <span class="text-white me-3">Admin</span>
+        <button class="btn btn-outline-light btn-sm">Logout</button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="container">
+      
+      <!-- Dashboard Header -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h1 class="page-title">ITL Control Plane Dashboard</h1>
+          <p class="text-muted">Multi-tenant resource management with PostgreSQL and Neo4j</p>
+        </div>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="row mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <a href="/resources/tenants" class="text-decoration-none">
+            <div class="card stat-card border-primary">
+              <div class="card-body">
+                <div class="stat-number">{{ dashboard.stats.postgresql.tenants }}</div>
+                <div class="stat-label">Tenants</div>
+              </div>
+            </div>
+          </a>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <a href="/resources/managementgroups" class="text-decoration-none">
+            <div class="card stat-card border-success">
+              <div class="card-body">
+                <div class="stat-number">{{ dashboard.stats.postgresql.management_groups }}</div>
+                <div class="stat-label">Mgmt Groups</div>
+              </div>
+            </div>
+          </a>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <a href="/resources/subscriptions" class="text-decoration-none">
+            <div class="card stat-card border-info">
+              <div class="card-body">
+                <div class="stat-number">{{ dashboard.stats.postgresql.subscriptions }}</div>
+                <div class="stat-label">Subscriptions</div>
+              </div>
+            </div>
+          </a>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <a href="/resources/resourcegroups" class="text-decoration-none">
+            <div class="card stat-card border-warning">
+              <div class="card-body">
+                <div class="stat-number">{{ dashboard.stats.postgresql.resource_groups }}</div>
+                <div class="stat-label">Resource Groups</div>
+              </div>
+            </div>
+          </a>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <a href="/resources/locations" class="text-decoration-none">
+            <div class="card stat-card border-secondary">
+              <div class="card-body">
+                <div class="stat-number">{{ dashboard.stats.postgresql.locations }}</div>
+                <div class="stat-label">Locations</div>
+              </div>
+            </div>
+          </a>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <div class="card stat-card border-danger">
+            <div class="card-body">
+              <div class="stat-number">{{ dashboard.stats.postgresql.total }}</div>
+              <div class="stat-label">Total Resources</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tenants Overview -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h3>Tenant Overview</h3>
+          <div class="row">
+            {% for tenant in dashboard.tenants %}
+            <div class="col-md-4 mb-3">
+              <div class="card tenant-card tenant-{{ tenant.name.lower() }}">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0">
+                      <i class="bi-building"></i> {{ tenant.properties.display_name }}
+                    </h5>
+                    <span class="badge bg-success">Active</span>
+                  </div>
+                  <p class="text-muted small mb-2">{{ tenant.properties.description }}</p>
+                  <div class="d-flex justify-content-between text-muted small">
+                    <span><i class="bi-diagram-3"></i> Tenant ID: {{ tenant.name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Management Groups & Subscriptions -->
+      <div class="row mb-4">
+        <!-- Management Groups -->
+        <div class="col-md-6 mb-3">
+          <h3>Management Groups (Top 10)</h3>
+          <div class="card">
+            <div class="card-body p-0">
+              <div class="resource-list">
+                {% for mg in dashboard.management_groups %}
+                <div class="resource-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{{ mg.properties.display_name }}</strong>
+                      <div class="text-muted small">{{ mg.name }}</div>
+                    </div>
+                    <span class="badge bg-primary">{{ mg.properties.tenant_id }}</span>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscriptions -->
+        <div class="col-md-6 mb-3">
+          <h3>Subscriptions (Top 10)</h3>
+          <div class="card">
+            <div class="card-body p-0">
+              <div class="resource-list">
+                {% for sub in dashboard.subscriptions %}
+                <div class="resource-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{{ sub.properties.display_name }}</strong>
+                      <div class="text-muted small">{{ sub.name }}</div>
+                    </div>
+                    <span class="badge bg-{{ 'success' if sub.properties.state == 'Enabled' else 'secondary' }}">
+                      {{ sub.properties.state }}
+                    </span>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Database Statistics -->
+      <div class="row mb-4" style="display: flex; flex-wrap: wrap;">
+        <div class="col-md-6 mb-3 d-flex flex-column">
+          <h3>PostgreSQL Statistics</h3>
+          <div class="card flex-grow-1">
+            <div class="card-body d-flex align-items-center justify-content-center">
+              <div class="row w-100">
+                <div class="col-4 text-center">
+                  <i class="bi-database fs-2 text-primary"></i>
+                  <div class="mt-1">
+                    <strong class="d-block">{{ dashboard.stats.postgresql.total }}</strong>
+                    <small class="text-muted">Total Records</small>
+                  </div>
+                </div>
+                <div class="col-4 text-center">
+                  <i class="bi-diagram-3 fs-2 text-success"></i>
+                  <div class="mt-1">
+                    <strong class="d-block">{{ dashboard.stats.postgresql.relationships }}</strong>
+                    <small class="text-muted">Relationships</small>
+                  </div>
+                </div>
+                <div class="col-4 text-center">
+                  <span class="badge bg-success"><i class="bi-check-circle"></i> Connected</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 mb-3 d-flex flex-column">
+          <h3>Neo4j Graph Statistics</h3>
+          <div class="card flex-grow-1">
+            <div class="card-body d-flex align-items-center justify-content-center">
+              <div class="row w-100">
+                <div class="col-4 text-center">
+                  <i class="bi-circle-fill fs-2 text-info"></i>
+                  <div class="mt-1">
+                    <strong class="d-block">{{ dashboard.stats.neo4j.total_nodes }}</strong>
+                    <small class="text-muted">Nodes</small>
+                  </div>
+                </div>
+                <div class="col-4 text-center">
+                  <i class="bi-arrow-left-right fs-2 text-warning"></i>
+                  <div class="mt-1">
+                    <strong class="d-block">{{ dashboard.stats.neo4j.total_relationships }}</strong>
+                    <small class="text-muted">Relationships</small>
+                  </div>
+                </div>
+                <div class="col-4 text-center">
+                  <span class="badge {% if dashboard.stats.neo4j.connected %}bg-success{% else %}bg-danger{% endif %}">
+                    {% if dashboard.stats.neo4j.connected %}<i class="bi-check-circle"></i> Connected{% else %}<i class="bi-x-circle"></i> Disconnected{% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resource Hierarchy Graph -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h3><i class="bi-diagram-3 me-2"></i>Resource Hierarchy (Neo4j)</h3>
+          <div class="card">
+            <div class="card-body p-0" style="position: relative;">
+              <div id="graph-legend" style="position: absolute; top: 12px; right: 16px; z-index: 10; background: rgba(255,255,255,0.9); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                <div class="mb-1"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#7c3aed;margin-right:6px;"></span>Tenant</div>
+                <div class="mb-1"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#059669;margin-right:6px;"></span>Management Group</div>
+                <div class="mb-1"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#2563eb;margin-right:6px;"></span>Subscription</div>
+                <div><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#d97706;margin-right:6px;"></span>Resource Group</div>
+              </div>
+              <div id="graph-container" style="width: 100%; height: 500px; overflow: hidden;"></div>
+              <div id="graph-tooltip" style="position:absolute;display:none;background:#333;color:#fff;padding:6px 12px;border-radius:6px;font-size:0.8rem;pointer-events:none;z-index:20;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h3>Quick Access</h3>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <div class="card border-primary h-100">
+                <div class="card-body text-center">
+                  <i class="bi-file-earmark-code fs-1 text-primary mb-2"></i>
+                  <h5 class="card-title mb-1">API Documentation</h5>
+                  <p class="text-muted small mb-3">OpenAPI / Swagger UI</p>
+                  <a href="http://localhost:8000/docs" target="_blank" class="btn btn-primary btn-sm">Open</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 mb-3">
+              <div class="card border-info h-100">
+                <div class="card-body text-center">
+                  <i class="bi-database-gear fs-1 text-info mb-2"></i>
+                  <h5 class="card-title mb-1">CloudBeaver</h5>
+                  <p class="text-muted small mb-3">Database Admin UI</p>
+                  <a href="http://localhost:8978" target="_blank" class="btn btn-info btn-sm">Open</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 mb-3">
+              <div class="card border-success h-100">
+                <div class="card-body text-center">
+                  <i class="bi-diagram-3 fs-1 text-success mb-2"></i>
+                  <h5 class="card-title mb-1">Neo4j Browser</h5>
+                  <p class="text-muted small mb-3">Graph Database UI</p>
+                  <a href="http://localhost:7474" target="_blank" class="btn btn-success btn-sm">Open</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 mb-3">
+              <div class="card border-warning h-100">
+                <div class="card-body text-center">
+                  <i class="bi-router fs-1 text-warning mb-2"></i>
+                  <h5 class="card-title mb-1">API Gateway</h5>
+                  <p class="text-muted small mb-3">Gateway Docs</p>
+                  <a href="http://localhost:8081/docs" target="_blank" class="btn btn-warning btn-sm">Open</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="text-center py-3">
+        <p class="mb-0">&copy; 2026 ITlusions Control Plane. All rights reserved.</p>
+        <small class="text-white-50">Powered by FastAPI, PostgreSQL, and Neo4j</small>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    // Auto-refresh every 60 seconds (longer to allow graph interaction)
+    setTimeout(() => {
+      location.reload();
+    }, 60000);
+
+    // --- Resource Hierarchy Graph (D3.js force-directed) ---
+    (async function() {
+      const container = document.getElementById('graph-container');
+      const tooltip = document.getElementById('graph-tooltip');
+      if (!container) return;
+
+      const width = container.clientWidth;
+      const height = 500;
+
+      const colorMap = {
+        tenant: '#7c3aed',
+        managementgroup: '#059669',
+        subscription: '#2563eb',
+        resourcegroup: '#d97706'
+      };
+      const radiusMap = {
+        tenant: 18,
+        managementgroup: 13,
+        subscription: 10,
+        resourcegroup: 7
+      };
+
+      let data;
+      try {
+        const resp = await fetch('/api/graph');
+        data = await resp.json();
+      } catch (e) {
+        container.innerHTML = '<p class="text-muted text-center py-5">Could not load graph data.</p>';
+        return;
+      }
+
+      if (!data.nodes || data.nodes.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center py-5">No graph data available.</p>';
+        return;
+      }
+
+      const svg = d3.select(container)
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height]);
+
+      // Zoom support
+      const g = svg.append('g');
+      svg.call(d3.zoom()
+        .scaleExtent([0.3, 4])
+        .on('zoom', (event) => g.attr('transform', event.transform)));
+
+      // Arrow marker for directed edges
+      svg.append('defs').append('marker')
+        .attr('id', 'arrowhead')
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 20)
+        .attr('refY', 0)
+        .attr('markerWidth', 6)
+        .attr('markerHeight', 6)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5')
+        .attr('fill', '#ccc');
+
+      const simulation = d3.forceSimulation(data.nodes)
+        .force('link', d3.forceLink(data.links).id(d => d.id).distance(d => {
+          // Shorter links for RGs, longer for tenants
+          const src = data.nodes.find(n => n.id === (d.source.id || d.source));
+          return src && src.type === 'subscription' ? 50 : 90;
+        }))
+        .force('charge', d3.forceManyBody().strength(d => d.type === 'tenant' ? -400 : d.type === 'resourcegroup' ? -30 : -120))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => radiusMap[d.type] + 4));
+
+      const link = g.append('g')
+        .selectAll('line')
+        .data(data.links)
+        .join('line')
+        .attr('stroke', '#ddd')
+        .attr('stroke-width', 1.2)
+        .attr('marker-end', 'url(#arrowhead)');
+
+      const node = g.append('g')
+        .selectAll('circle')
+        .data(data.nodes)
+        .join('circle')
+        .attr('r', d => radiusMap[d.type] || 8)
+        .attr('fill', d => colorMap[d.type] || '#999')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1.5)
+        .style('cursor', 'pointer')
+        .call(d3.drag()
+          .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+          .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+          .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+      // Labels (only for tenants and MGs to avoid clutter)
+      const label = g.append('g')
+        .selectAll('text')
+        .data(data.nodes.filter(n => n.type === 'tenant' || n.type === 'managementgroup'))
+        .join('text')
+        .text(d => d.label.length > 20 ? d.label.substring(0, 18) + '…' : d.label)
+        .attr('font-size', d => d.type === 'tenant' ? '11px' : '9px')
+        .attr('font-weight', d => d.type === 'tenant' ? '600' : '400')
+        .attr('fill', '#555')
+        .attr('text-anchor', 'middle')
+        .attr('dy', d => -(radiusMap[d.type] + 6));
+
+      // Tooltip
+      node.on('mouseover', (event, d) => {
+          const typeLabel = d.type.replace('managementgroup', 'Management Group').replace('resourcegroup', 'Resource Group').replace('tenant', 'Tenant').replace('subscription', 'Subscription');
+          tooltip.style.display = 'block';
+          tooltip.innerHTML = '<strong>' + d.label + '</strong><br><span style="opacity:0.8;">' + typeLabel + '</span>';
+        })
+        .on('mousemove', (event) => {
+          tooltip.style.left = (event.offsetX + 14) + 'px';
+          tooltip.style.top = (event.offsetY - 10) + 'px';
+        })
+        .on('mouseout', () => { tooltip.style.display = 'none'; });
+
+      simulation.on('tick', () => {
+        link
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y);
+        node
+          .attr('cx', d => d.x)
+          .attr('cy', d => d.y);
+        label
+          .attr('x', d => d.x)
+          .attr('y', d => d.y);
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{# Resource Health Widget - Overview of resource health status #}
+{% set health = widget_data.health if widget_data and widget_data.health else {} %}
+<div class="resource-health-widget" id="resource-health-widget">
+  <div class="health-summary">
+    <div class="health-ring-container">
+      <div class="health-ring" id="health-ring">
+        <svg viewBox="0 0 100 100">
+          <circle class="health-track" cx="50" cy="50" r="45"/>
+          <circle class="health-progress healthy" cx="50" cy="50" r="45" 
+                  stroke-dasharray="{{ (health.healthy or 85) * 2.83 }} 283"/>
+        </svg>
+        <div class="health-center">
+          <span class="health-percent">{{ health.healthy or 85 }}%</span>
+          <span class="health-label">Healthy</span>
+        </div>
+      </div>
+    </div>
+    <div class="health-breakdown">
+      <div class="health-stat healthy">
+        <i class="bi bi-check-circle-fill"></i>
+        <div class="stat-info">
+          <span class="stat-value">{{ health.healthy_count or 42 }}</span>
+          <span class="stat-label">Healthy</span>
+        </div>
+      </div>
+      <div class="health-stat degraded">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        <div class="stat-info">
+          <span class="stat-value">{{ health.degraded_count or 5 }}</span>
+          <span class="stat-label">Degraded</span>
+        </div>
+      </div>
+      <div class="health-stat unhealthy">
+        <i class="bi bi-x-circle-fill"></i>
+        <div class="stat-info">
+          <span class="stat-value">{{ health.unhealthy_count or 2 }}</span>
+          <span class="stat-label">Unhealthy</span>
+        </div>
+      </div>
+      <div class="health-stat unknown">
+        <i class="bi bi-question-circle-fill"></i>
+        <div class="stat-info">
+          <span class="stat-value">{{ health.unknown_count or 1 }}</span>
+          <span class="stat-label">Unknown</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  {% if health.issues %}
+  <div class="health-issues">
+    <div class="issues-header">Recent Issues</div>
+    {% for issue in health.issues[:3] %}
+    <div class="issue-item">
+      <span class="issue-resource">{{ issue.resource }}</span>
+      <span class="issue-desc">{{ issue.description }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>

@@ -1,0 +1,114 @@
+{# Recent Activity Widget - Shows last N audit events #}
+{% set activity = widget_data.recent_activity or [] %}
+{% if activity and activity|length > 0 %}
+<div class="recent-activity-widget">
+  <div class="activity-list">
+    {% for event in activity %}
+    {% if loop.index <= 5 %}
+    <div class="activity-item">
+      <div class="activity-icon {% if event.action == 'CREATE' %}create{% elif event.action == 'DELETE' %}delete{% elif event.action == 'UPDATE' %}update{% else %}other{% endif %}">
+        {% if event.action == 'CREATE' %}
+        <i class="bi bi-plus-circle"></i>
+        {% elif event.action == 'DELETE' %}
+        <i class="bi bi-trash"></i>
+        {% elif event.action == 'UPDATE' %}
+        <i class="bi bi-pencil"></i>
+        {% else %}
+        <i class="bi bi-activity"></i>
+        {% endif %}
+      </div>
+      <div class="activity-content">
+        <div class="activity-title">
+          <span class="action-badge {{ event.action|lower }}">{{ event.action }}</span>
+          <span class="resource-type">{{ event.resource_type or 'Resource' }}</span>
+        </div>
+        <div class="activity-detail">
+          {{ event.resource_name or event.resource_id or 'Unknown' }}
+        </div>
+        <div class="activity-meta">
+          <span class="user">{{ event.actor_display_name or event.actor_type or 'system' }}</span>
+          <span class="time">{{ event.timestamp[:16] if event.timestamp else '' }}</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  <div class="mt-3 text-end">
+    <a href="/activity-logs" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-clock-history me-1"></i>View All Activity
+    </a>
+  </div>
+</div>
+
+<style>
+  .recent-activity-widget .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .recent-activity-widget .activity-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .recent-activity-widget .activity-item:hover {
+    background: #f0f0f0;
+  }
+  .recent-activity-widget .activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9ecef;
+    color: #666;
+    flex-shrink: 0;
+  }
+  .recent-activity-widget .activity-icon.create { background: #d4edda; color: #155724; }
+  .recent-activity-widget .activity-icon.delete { background: #f8d7da; color: #721c24; }
+  .recent-activity-widget .activity-icon.update { background: #fff3cd; color: #856404; }
+  .recent-activity-widget .activity-content { flex: 1; min-width: 0; }
+  .recent-activity-widget .activity-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .85rem;
+  }
+  .recent-activity-widget .action-badge {
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #e9ecef;
+    color: #666;
+  }
+  .recent-activity-widget .action-badge.create { background: #d4edda; color: #155724; }
+  .recent-activity-widget .action-badge.delete { background: #f8d7da; color: #721c24; }
+  .recent-activity-widget .action-badge.update { background: #fff3cd; color: #856404; }
+  .recent-activity-widget .resource-type { font-weight: 500; color: #333; }
+  .recent-activity-widget .activity-detail {
+    font-size: .78rem;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .recent-activity-widget .activity-meta {
+    display: flex;
+    gap: 12px;
+    font-size: .7rem;
+    color: #999;
+    margin-top: 2px;
+  }
+</style>
+{% else %}
+<div class="text-center text-muted py-4">
+  <i class="bi bi-clock me-2"></i>No recent activity
+</div>
+{% endif %}

@@ -1,0 +1,96 @@
+{# Deployment Status Widget - Track ongoing and recent deployments #}
+{% set deployments = widget_data.deployments if widget_data and widget_data.deployments else [] %}
+<div class="deployment-status-widget" id="deployment-status-widget">
+  <div class="deployments-list">
+    {% if deployments %}
+      {% for deploy in deployments %}
+      <div class="deployment-item deploy-{{ deploy.status|lower }}">
+        <div class="deploy-progress-ring" data-progress="{{ deploy.progress or 0 }}">
+          <svg viewBox="0 0 36 36">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+            <path class="circle-progress" stroke-dasharray="{{ deploy.progress or 0 }}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+          </svg>
+          <span class="progress-text">{{ deploy.progress or 0 }}%</span>
+        </div>
+        <div class="deploy-info">
+          <div class="deploy-name">{{ deploy.name }}</div>
+          <div class="deploy-target">{{ deploy.target or deploy.resource_group or 'N/A' }}</div>
+          <div class="deploy-meta">
+            <span class="deploy-status status-{{ deploy.status|lower }}">
+              {% if deploy.status|lower == 'running' %}<i class="bi bi-arrow-repeat spin"></i>
+              {% elif deploy.status|lower == 'succeeded' %}<i class="bi bi-check-circle"></i>
+              {% elif deploy.status|lower == 'failed' %}<i class="bi bi-x-circle"></i>
+              {% else %}<i class="bi bi-clock"></i>{% endif %}
+              {{ deploy.status }}
+            </span>
+            <span class="deploy-duration">{{ deploy.duration or '—' }}</span>
+          </div>
+        </div>
+        <a href="{{ deploy.url or '#' }}" class="deploy-link" title="View details"><i class="bi bi-box-arrow-up-right"></i></a>
+      </div>
+      {% endfor %}
+    {% else %}
+      {# Sample deployments for demo #}
+      <div class="deployment-item deploy-running">
+        <div class="deploy-progress-ring" data-progress="65">
+          <svg viewBox="0 0 36 36">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+            <path class="circle-progress" stroke-dasharray="65, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+          </svg>
+          <span class="progress-text">65%</span>
+        </div>
+        <div class="deploy-info">
+          <div class="deploy-name">Web App Deployment</div>
+          <div class="deploy-target">production-rg</div>
+          <div class="deploy-meta">
+            <span class="deploy-status status-running"><i class="bi bi-arrow-repeat spin"></i> Running</span>
+            <span class="deploy-duration">2m 34s</span>
+          </div>
+        </div>
+        <a href="#" class="deploy-link" title="View details"><i class="bi bi-box-arrow-up-right"></i></a>
+      </div>
+      <div class="deployment-item deploy-succeeded">
+        <div class="deploy-progress-ring" data-progress="100">
+          <svg viewBox="0 0 36 36">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+            <path class="circle-progress" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+          </svg>
+          <span class="progress-text"><i class="bi bi-check"></i></span>
+        </div>
+        <div class="deploy-info">
+          <div class="deploy-name">Database Migration</div>
+          <div class="deploy-target">data-rg</div>
+          <div class="deploy-meta">
+            <span class="deploy-status status-succeeded"><i class="bi bi-check-circle"></i> Succeeded</span>
+            <span class="deploy-duration">5m 12s</span>
+          </div>
+        </div>
+        <a href="#" class="deploy-link" title="View details"><i class="bi bi-box-arrow-up-right"></i></a>
+      </div>
+      <div class="deployment-item deploy-pending">
+        <div class="deploy-progress-ring" data-progress="0">
+          <svg viewBox="0 0 36 36">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+            <path class="circle-progress" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+          </svg>
+          <span class="progress-text"><i class="bi bi-clock"></i></span>
+        </div>
+        <div class="deploy-info">
+          <div class="deploy-name">Network Update</div>
+          <div class="deploy-target">network-rg</div>
+          <div class="deploy-meta">
+            <span class="deploy-status status-pending"><i class="bi bi-clock"></i> Pending</span>
+            <span class="deploy-duration">Queued</span>
+          </div>
+        </div>
+        <a href="#" class="deploy-link" title="View details"><i class="bi bi-box-arrow-up-right"></i></a>
+      </div>
+    {% endif %}
+  </div>
+  
+  <div class="mt-3 text-end">
+    <a href="/deployments" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-rocket-takeoff me-1"></i>All Deployments
+    </a>
+  </div>
+</div>

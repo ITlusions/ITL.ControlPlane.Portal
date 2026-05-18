@@ -1,0 +1,606 @@
+{% extends "base_detail.html" %}
+
+{% block title %}{{ resource_name }} - ITlusions Control Plane{% endblock %}
+
+{% block extra_css %}
+/* Page-specific overrides */
+:root {
+  --list-width: 280px;
+  --menu-width: 220px;
+}
+
+/* List pane name header */
+.list-items .list-name-header {
+  padding: 8px 16px; font-size: .72rem; font-weight: 600;
+  color: #555; text-transform: uppercase; letter-spacing: .3px;
+  border-bottom: 1px solid #eee; background: #f8f8f8;
+  position: sticky; top: 0; z-index: 1;
+}
+
+/* Resource title bar */
+.resource-title-bar {
+  padding: 16px 24px 12px; border-bottom: 1px solid var(--pane-border); background: #fff;
+}
+.resource-title-bar h1 { font-size: 1.3rem; font-weight: 600; margin: 0; color: #222; }
+.resource-title-bar .res-subtitle { font-size: .78rem; color: #888; margin-top: 2px; }
+
+/* Resource toolbar */
+.resource-toolbar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 8px 24px; border-bottom: 1px solid var(--pane-border); background: #fafafa;
+}
+.resource-toolbar .tb-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border: 1px solid #ccc; border-radius: 4px;
+  background: #fff; color: #333; font-size: .78rem; cursor: pointer; text-decoration: none;
+}
+.resource-toolbar .tb-btn:hover { background: #f0f0f0; }
+.resource-toolbar .tb-sep { width: 1px; height: 22px; background: #ddd; margin: 0 2px; }
+.resource-toolbar .json-link {
+  margin-left: auto; font-size: .78rem; color: var(--link-blue); text-decoration: none;
+}
+.resource-toolbar .json-link:hover { text-decoration: underline; }
+
+/* Essentials grid override */
+.essentials-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 40px; font-size: .82rem;
+}
+.essentials-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; }
+.essentials-label { color: #666; min-width: 130px; flex-shrink: 0; }
+.essentials-value { color: #333; word-break: break-all; }
+.essentials-value a { color: var(--link-blue); text-decoration: none; }
+.essentials-value a:hover { text-decoration: underline; }
+.essentials-value .status-ok { color: #16a34a; font-weight: 500; }
+
+/* Detail menu (middle pane) */
+.detail-menu-search {
+  padding: 10px 10px 6px; border-bottom: 1px solid #eee;
+}
+.detail-menu-search input {
+  width: 100%; border: 1px solid #ccc; border-radius: 3px;
+  padding: 5px 8px; font-size: .78rem;
+}
+.detail-menu-search input:focus { outline: none; border-color: var(--orange-accent); }
+.detail-menu-nav { list-style: none; margin: 0; padding: 4px 0; flex: 1; }
+.detail-menu-nav .menu-item a {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; text-decoration: none; color: #333;
+  font-size: .82rem; border-left: 3px solid transparent;
+  transition: background .1s, border-color .1s;
+}
+.detail-menu-nav .menu-item a:hover { background: var(--hover-bg); }
+.detail-menu-nav .menu-item a.active {
+  background: var(--active-bg); border-left-color: var(--active-text);
+  color: var(--active-text); font-weight: 600;
+}
+.detail-menu-nav .menu-item a i { width: 18px; text-align: center; font-size: .85rem; }
+.detail-menu-nav .menu-divider { border-top: 1px solid #ddd; margin: 6px 12px; }
+
+/* Activity log */
+.activity-description { font-size: .82rem; }
+#activityLogPagination { font-size: .78rem; }
+{% endblock %}
+
+{% block list_pane %}
+<div class="list-header">
+  <nav style="font-size:.7rem; margin-bottom: 4px;">
+    <a href="/" class="text-decoration-none" style="color:var(--link-blue);">Home</a>
+    <span class="text-muted mx-1">›</span>
+    <a href="/resources/{{ resource_type }}" class="text-decoration-none" style="color:var(--link-blue);">{{ plural }}</a>
+  </nav>
+  <h2><i class="bi {{ icon }} me-1" style="font-size:.85rem;"></i>Resource Manager | {{ plural }}</h2>
+</div>
+<div class="list-toolbar">
+  <a href="/resources/{{ resource_type }}" class="tb-btn"><i class="bi-arrow-left"></i></a>
+  <span class="tb-btn" onclick="location.reload()"><i class="bi-arrow-clockwise"></i> Refresh</span>
+</div>
+<div class="list-search">
+  <input type="text" placeholder="Filter by name..." id="listFilterInput" onkeyup="filterList()">
+</div>
+<div class="list-items" id="listItems">
+  <div class="list-name-header">Name ↑</div>
+  {% for sib in siblings %}
+  <a href="/resources/{{ resource_type }}/{{ sib.name }}"
+     class="list-item {{ 'active' if sib.name == resource_name else '' }}"
+     data-name="{{ sib.name|lower }}">
+    <i class="bi {{ icon }}"></i>
+    <span class="name">{{ sib.name }}</span>
+  </a>
+  {% endfor %}
+</div>
+<div class="list-footer">
+  <span>Showing <strong id="listVisibleCount">{{ siblings|length }}</strong> of {{ siblings|length }}</span>
+  <span>Display count:
+    <select id="listPageSize">
+      <option value="0" selected>auto</option>
+    </select>
+  </span>
+</div>
+{% endblock %}
+
+{% block detail_sidebar %}
+{% if resource %}
+<div class="detail-menu-search">
+  <input type="text" placeholder="Search..." id="menuSearch" onkeyup="filterMenu()">
+</div>
+<ul class="detail-menu-nav" id="detailMenuNav">
+  {% for item in detail_sidebar %}
+    {% if item.is_divider is defined and item.is_divider %}
+      <li class="menu-divider"></li>
+    {% else %}
+      <li class="menu-item">
+        <a href="#{{ item.section }}" class="{{ 'active' if item.active is defined and item.active else '' }}" onclick="activateMenu(this)">
+          <i class="bi {{ item.icon }}"></i> {{ item.label }}
+        </a>
+      </li>
+    {% endif %}
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
+
+{% block detail_content %}
+{% if resource %}
+<!-- Resource Title Bar -->
+<div class="resource-title-bar">
+  <h1><i class="bi {{ icon }} me-2" style="font-size:1.1rem;"></i>{{ resource.properties.display_name or resource.name }}</h1>
+  <div class="res-subtitle">{{ title }}</div>
+</div>
+
+<!-- Toolbar -->
+<div class="resource-toolbar">
+  <button class="tb-btn" onclick="location.reload()"><i class="bi-arrow-clockwise"></i> Refresh</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn"><i class="bi-tags"></i> Assign tags</button>
+  <button class="tb-btn"><i class="bi-download"></i> Export</button>
+  <a href="#properties" class="json-link" onclick="activateMenu(document.querySelector('[href=\'#properties\']'))">JSON View</a>
+</div>
+
+<!-- Essentials -->
+<div class="essentials">
+  <div class="essentials-toggle" onclick="document.getElementById('essentialsGrid').classList.toggle('d-none')">
+    <i class="bi-chevron-down" style="font-size:.7rem;"></i> Essentials
+  </div>
+  <div class="essentials-grid" id="essentialsGrid">
+    {% for e in essentials %}
+    <div class="essentials-row">
+      <span class="essentials-label">{{ e.label }}</span>
+      <span class="essentials-value">
+        {% if e.link is defined and e.link %}
+          <a href="{{ e.link }}">{{ e.value }}</a>
+        {% elif e.value in ['Succeeded', 'Active', 'Enabled'] %}
+          <span class="status-ok">{{ e.value }}</span>
+        {% else %}
+          {{ e.value }}
+        {% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Tags -->
+{% if resource.tags and resource.tags.keys()|list|length > 0 %}
+<div class="tags-section">
+  <div class="tags-label">Tags</div>
+  {% for key, value in resource.tags.items() %}
+  <span class="tag-pill">{{ key }} : {{ value }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Properties Table -->
+<div class="detail-body" id="properties">
+  <h3>Properties</h3>
+  <table class="prop-table">
+    <tr>
+      <td class="pk">Name</td>
+      <td class="pv"><strong>{{ resource.name }}</strong></td>
+    </tr>
+    <tr>
+      <td class="pk">Resource ID</td>
+      <td class="pv"><code>{{ resource.id }}</code></td>
+    </tr>
+    <tr>
+      <td class="pk">Type</td>
+      <td class="pv">{{ resource.type or '—' }}</td>
+    </tr>
+    {% if resource.location %}
+    <tr>
+      <td class="pk">Location</td>
+      <td class="pv"><i class="bi-geo-alt me-1" style="color:#888;font-size:.8rem;"></i>{{ resource.location }}</td>
+    </tr>
+    {% endif %}
+
+    {% if resource.properties %}
+      {% if resource.properties.display_name %}
+      <tr>
+        <td class="pk">Display Name</td>
+        <td class="pv">{{ resource.properties.display_name }}</td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.tenant_id %}
+      <tr>
+        <td class="pk">Tenant</td>
+        <td class="pv">
+          <a href="/resources/tenants/{{ resource.properties.tenant_id.split('/')[-1] }}">{{ resource.properties.tenant_id.split('/')[-1] }}</a>
+          <code class="ms-2">{{ resource.properties.tenant_id }}</code>
+        </td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.subscription_id %}
+      <tr>
+        <td class="pk">Subscription</td>
+        <td class="pv">
+          <a href="/resources/subscriptions/{{ resource.properties.subscription_id.split('/')[-1] }}">{{ resource.properties.subscription_id.split('/')[-1] }}</a>
+          <code class="ms-2">{{ resource.properties.subscription_id }}</code>
+        </td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.management_group_id %}
+      <tr>
+        <td class="pk">Management Group</td>
+        <td class="pv">
+          <a href="/resources/managementgroups/{{ resource.properties.management_group_id.split('/')[-1] }}">{{ resource.properties.management_group_id.split('/')[-1] }}</a>
+          <code class="ms-2">{{ resource.properties.management_group_id }}</code>
+        </td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.parent_id %}
+      <tr>
+        <td class="pk">Parent</td>
+        <td class="pv">
+          <a href="/resources/{{ resource_type }}/{{ resource.properties.parent_id.split('/')[-1] }}">{{ resource.properties.parent_id.split('/')[-1] }}</a>
+          <code class="ms-2">{{ resource.properties.parent_id }}</code>
+        </td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.provisioning_state %}
+      <tr>
+        <td class="pk">Provisioning State</td>
+        <td class="pv"><span style="color:{{ '#16a34a' if resource.properties.provisioning_state == 'Succeeded' else '#888' }}; font-weight:500;">{{ resource.properties.provisioning_state }}</span></td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.state %}
+      <tr>
+        <td class="pk">State</td>
+        <td class="pv"><span style="color:{{ '#16a34a' if resource.properties.state in ['Active','Enabled','Succeeded'] else '#888' }}; font-weight:500;">{{ resource.properties.state }}</span></td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.description %}
+      <tr>
+        <td class="pk">Description</td>
+        <td class="pv">{{ resource.properties.description }}</td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.created_at %}
+      <tr>
+        <td class="pk">Created</td>
+        <td class="pv">{{ resource.properties.created_at }}</td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.updated_at %}
+      <tr>
+        <td class="pk">Updated</td>
+        <td class="pv">{{ resource.properties.updated_at }}</td>
+      </tr>
+      {% endif %}
+
+      {% if resource.properties.properties %}
+      <tr><td colspan="2" style="padding-top:16px;"><h3 style="margin:0;">Extended Properties</h3></td></tr>
+      {% for key, value in resource.properties.properties.items() %}
+      <tr>
+        <td class="pk">{{ key }}</td>
+        <td class="pv">{{ value }}</td>
+      </tr>
+      {% endfor %}
+      {% endif %}
+    {% endif %}
+
+    {% if resource.tags and resource.tags.keys()|list|length > 0 %}
+    <tr><td colspan="2" style="padding-top:16px;"><h3 style="margin:0;">Tags</h3></td></tr>
+    {% for key, value in resource.tags.items() %}
+    <tr>
+      <td class="pk">{{ key }}</td>
+      <td class="pv">{{ value }}</td>
+    </tr>
+    {% endfor %}
+    {% endif %}
+
+    {% if resource.resource_guid %}
+    <tr>
+      <td class="pk">Resource GUID</td>
+      <td class="pv"><code>{{ resource.resource_guid }}</code></td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+
+<!-- Activity Log Section -->
+<div class="detail-body" id="activity" style="display:none;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="m-0">Activity Log</h3>
+    <div class="d-flex gap-2 align-items-center">
+      <select id="activityActionFilter" class="form-select form-select-sm" style="width:auto;font-size:.78rem;" onchange="loadActivityLogs()">
+        <option value="">All actions</option>
+        <option value="CREATE">Create</option>
+        <option value="UPDATE">Update</option>
+        <option value="DELETE">Delete</option>
+      </select>
+      <button class="tb-btn" onclick="loadActivityLogs()"><i class="bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+  </div>
+  <div class="activity-description text-muted mb-3">
+    <i class="bi-info-circle me-1"></i>
+    Showing activity for <strong>{{ resource.name }}</strong> and all child resources.
+  </div>
+  <div id="activityLogContainer">
+    <div class="text-center text-muted py-4">
+      <i class="bi-hourglass-split"></i> Loading activity logs...
+    </div>
+  </div>
+  <div id="activityLogPagination" class="d-flex justify-content-between align-items-center mt-3" style="display:none!important;">
+    <span class="text-muted">
+      Showing <span id="activityCount">0</span> of <span id="activityTotal">0</span> events
+    </span>
+    <div>
+      <button class="tb-btn" id="prevPageBtn" onclick="prevPage()" disabled><i class="bi-chevron-left"></i></button>
+      <button class="tb-btn" id="nextPageBtn" onclick="nextPage()"><i class="bi-chevron-right"></i></button>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- Not Found -->
+<div class="detail-content" style="display:flex;align-items:center;justify-content:center;flex:1;">
+  <div class="text-center">
+    <i class="bi-exclamation-circle" style="font-size:3rem;color:#f59e0b;"></i>
+    <h3 class="mt-3">Resource Not Found</h3>
+    <p class="text-muted">Could not find <strong>{{ resource_name }}</strong> in {{ plural }}.</p>
+    <a href="/resources/{{ resource_type }}" class="btn btn-outline-primary mt-2">
+      <i class="bi-arrow-left me-1"></i> Back to {{ plural }}
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Event Detail Modal -->
+<div class="modal fade" id="eventDetailModal" tabindex="-1" aria-labelledby="eventDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventDetailModalLabel"><i class="bi-activity me-2"></i>Event Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="eventDetailBody">
+        <!-- Filled by JS -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="copyEventJson()"><i class="bi-clipboard me-1"></i>Copy JSON</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Activity log state
+  let activityOffset = 0;
+  const activityLimit = 25;
+  const resourceId = '{{ resource.id | default("", true) }}';
+  const resourceType = '{{ resource_type }}';
+  let currentEvent = null;
+
+  function filterList() {
+    const q = (document.getElementById('listFilterInput').value || '').toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('#listItems .list-item').forEach(el => {
+      const show = (el.dataset.name || '').includes(q);
+      el.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    document.getElementById('listVisibleCount').textContent = visible;
+  }
+
+  function filterMenu() {
+    const q = (document.getElementById('menuSearch').value || '').toLowerCase();
+    document.querySelectorAll('#detailMenuNav .menu-item').forEach(el => {
+      el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  function activateMenu(el) {
+    document.querySelectorAll('#detailMenuNav .menu-item a').forEach(a => a.classList.remove('active'));
+    el.classList.add('active');
+    
+    // Get the section from href
+    const section = (el.getAttribute('href') || '').replace('#', '');
+    showSection(section);
+  }
+
+  function showSection(section) {
+    // Hide all sections
+    document.querySelectorAll('.detail-body').forEach(s => s.style.display = 'none');
+    
+    // Show the selected section
+    const targetSection = document.getElementById(section);
+    if (targetSection) {
+      targetSection.style.display = '';
+      // Load activity logs when that section is shown
+      if (section === 'activity') {
+        activityOffset = 0;
+        loadActivityLogs();
+      }
+    } else {
+      // Default to properties
+      document.getElementById('properties').style.display = '';
+    }
+  }
+
+  function buildScope() {
+    // Build scope based on resource type
+    if (resourceType === 'tenants') {
+      return '/';
+    } else if (resourceId) {
+      return resourceId;
+    }
+    return '/';
+  }
+
+  async function loadActivityLogs() {
+    const container = document.getElementById('activityLogContainer');
+    const action = document.getElementById('activityActionFilter')?.value || '';
+    const scope = buildScope();
+    
+    container.innerHTML = '<div class="text-center text-muted py-4"><i class="bi-hourglass-split"></i> Loading activity logs...</div>';
+    
+    try {
+      let url = `/api/activity-logs?scope=${encodeURIComponent(scope)}&limit=${activityLimit}&offset=${activityOffset}`;
+      if (action) url += `&action=${action}`;
+      
+      const resp = await fetch(url);
+      const data = await resp.json();
+      
+      if (data.error) {
+        container.innerHTML = `<div class="alert alert-warning"><i class="bi-exclamation-triangle me-2"></i>${data.error}</div>`;
+        return;
+      }
+      
+      if (!data.value || data.value.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-4"><i class="bi-inbox me-2"></i>No activity logs found for this scope.</div>';
+        document.getElementById('activityLogPagination').style.display = 'none';
+        return;
+      }
+      
+      // Build the activity log table
+      let html = `
+        <table class="prop-table">
+          <thead>
+            <tr style="background:#f8f8f8;">
+              <td class="pk" style="font-weight:600;">Time</td>
+              <td class="pv" style="font-weight:600;">Operation</td>
+              <td class="pv" style="font-weight:600;">Resource</td>
+              <td class="pv" style="font-weight:600;">Initiated by</td>
+              <td class="pv" style="font-weight:600;">Status</td>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      for (const evt of data.value) {
+        const ts = new Date(evt.timestamp);
+        const timeStr = ts.toLocaleString('en-GB', { 
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        
+        const actionBadge = getActionBadge(evt.action);
+        const actor = evt.actor_display_name || evt.actor_id || evt.actor_type || 'System';
+        const resourceName = evt.resource_name || evt.resource_id.split('/').pop();
+        const evtJson = JSON.stringify(evt).replace(/'/g, "&#39;");
+        
+        html += `
+          <tr style="cursor:pointer;" onclick='showEventDetail(${evtJson})' title="Click to view details">
+            <td class="pk" style="white-space:nowrap;font-size:.78rem;">${timeStr}</td>
+            <td class="pv">${actionBadge}</td>
+            <td class="pv">
+              <div style="font-size:.82rem;">${resourceName}</div>
+              <div style="font-size:.72rem;color:#888;">${evt.resource_type}</div>
+            </td>
+            <td class="pv" style="font-size:.82rem;">
+              <i class="bi-person-circle me-1" style="color:#888;"></i>${actor}
+            </td>
+            <td class="pv"><span class="badge bg-success-subtle text-success" style="font-size:.72rem;">Succeeded</span></td>
+          </tr>
+        `;
+      }
+      
+      html += '</tbody></table>';
+      container.innerHTML = html;
+      
+      // Update pagination
+      document.getElementById('activityCount').textContent = data.count;
+      document.getElementById('activityTotal').textContent = data.total_count;
+      document.getElementById('activityLogPagination').style.display = 'flex';
+      document.getElementById('prevPageBtn').disabled = activityOffset === 0;
+      document.getElementById('nextPageBtn').disabled = activityOffset + activityLimit >= data.total_count;
+      
+    } catch (err) {
+      console.error('Error loading activity logs:', err);
+      container.innerHTML = `<div class="alert alert-danger"><i class="bi-exclamation-triangle me-2"></i>Failed to load activity logs: ${err.message}</div>`;
+    }
+  }
+
+  function getActionBadge(action) {
+    const badges = {
+      'CREATE': '<span class="badge bg-success" style="font-size:.72rem;"><i class="bi-plus-circle me-1"></i>Create</span>',
+      'UPDATE': '<span class="badge bg-warning text-dark" style="font-size:.72rem;"><i class="bi-pencil me-1"></i>Update</span>',
+      'DELETE': '<span class="badge bg-danger" style="font-size:.72rem;"><i class="bi-trash me-1"></i>Delete</span>',
+      'READ': '<span class="badge bg-secondary" style="font-size:.72rem;"><i class="bi-eye me-1"></i>Read</span>',
+    };
+    return badges[action] || `<span class="badge bg-secondary" style="font-size:.72rem;">${action}</span>`;
+  }
+
+  function prevPage() {
+    if (activityOffset >= activityLimit) {
+      activityOffset -= activityLimit;
+      loadActivityLogs();
+    }
+  }
+
+  function nextPage() {
+    activityOffset += activityLimit;
+    loadActivityLogs();
+  }
+
+  function showEventDetail(evt) {
+    currentEvent = evt;
+    const body = document.getElementById('eventDetailBody');
+    const ts = new Date(evt.timestamp);
+    
+    body.innerHTML = `
+      <div style="font-size:.85rem;">
+        <div class="mb-3">
+          <strong>Event ID:</strong> <code>${evt.id}</code>
+        </div>
+        <div class="mb-3">
+          <strong>Timestamp:</strong> ${ts.toLocaleString('en-GB')}
+        </div>
+        <div class="mb-3">
+          <strong>Action:</strong> ${getActionBadge(evt.action)}
+        </div>
+        <div class="mb-3">
+          <strong>Resource:</strong><br>
+          <code style="font-size:.78rem;">${evt.resource_id}</code>
+        </div>
+        <div class="mb-3">
+          <strong>Actor:</strong> ${evt.actor_display_name || evt.actor_id || evt.actor_type || 'System'}
+        </div>
+        <hr>
+        <div><strong>Raw JSON:</strong></div>
+        <pre style="background:#f5f5f5; padding:10px; border-radius:4px; font-size:.75rem; max-height:300px; overflow:auto;">${JSON.stringify(evt, null, 2)}</pre>
+      </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
+    modal.show();
+  }
+
+  function copyEventJson() {
+    if (currentEvent) {
+      navigator.clipboard.writeText(JSON.stringify(currentEvent, null, 2));
+    }
+  }
+</script>
+{% endblock %}

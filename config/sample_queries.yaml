@@ -1,0 +1,156 @@
+# ════════════════════════════════════════════════════════════════════
+# ITL Control Plane Dashboard - Sample KQL Queries
+# ════════════════════════════════════════════════════════════════════
+# These queries are loaded into the Activity Logs query editor.
+# Add new samples here - they will appear in the "Sample Queries" dropdown.
+#
+# Format:
+#   - name: Display name in dropdown
+#     description: Optional tooltip/description
+#     category: Category for grouping (e.g., Common, Security, Audit)
+#     query: |
+#       Multi-line KQL query
+# ════════════════════════════════════════════════════════════════════
+
+samples:
+  # ─── Common Queries ───────────────────────────────────────────────
+  - name: All Create Operations
+    description: Show all resource creation events
+    category: Common
+    query: |
+      ActivityLogs
+      | where action == "CREATE"
+      | order by timestamp desc
+
+  - name: All Delete Operations
+    description: Show all resource deletion events
+    category: Common
+    query: |
+      ActivityLogs
+      | where action == "DELETE"
+      | order by timestamp desc
+
+  - name: All Update Operations
+    description: Show all resource update/modification events
+    category: Common
+    query: |
+      ActivityLogs
+      | where action == "UPDATE"
+      | order by timestamp desc
+
+  - name: Recent Activity (24h)
+    description: Events from the last 24 hours
+    category: Common
+    query: |
+      ActivityLogs
+      | where timestamp > ago(24h)
+      | order by timestamp desc
+
+  - name: Recent Activity (7 days)
+    description: Events from the last 7 days
+    category: Common
+    query: |
+      ActivityLogs
+      | where timestamp > ago(7d)
+      | order by timestamp desc
+
+  # ─── Resource Type Queries ────────────────────────────────────────
+  - name: Subscription Events
+    description: All events related to subscriptions
+    category: Resources
+    query: |
+      ActivityLogs
+      | where resource_type contains "subscriptions"
+      | order by timestamp desc
+
+  - name: Resource Group Events
+    description: All events related to resource groups
+    category: Resources
+    query: |
+      ActivityLogs
+      | where resource_type contains "resourceGroups"
+      | order by timestamp desc
+
+  - name: Tenant Events
+    description: All events related to tenants
+    category: Resources
+    query: |
+      ActivityLogs
+      | where resource_type contains "tenants"
+      | order by timestamp desc
+
+  - name: Management Group Events
+    description: All events related to management groups
+    category: Resources
+    query: |
+      ActivityLogs
+      | where resource_type contains "managementgroups"
+      | order by timestamp desc
+
+  # ─── Security & Audit Queries ─────────────────────────────────────
+  - name: Failed Operations
+    description: Show all failed operations
+    category: Security
+    query: |
+      ActivityLogs
+      | where status == "Failed"
+      | order by timestamp desc
+
+  - name: Operations by Actor
+    description: Filter by specific actor/user (edit actor_id)
+    category: Security
+    query: |
+      ActivityLogs
+      | where actor_id == "your-actor-id"
+      | order by timestamp desc
+
+  - name: System Operations
+    description: Show operations performed by system
+    category: Security
+    query: |
+      ActivityLogs
+      | where actor_id == "system"
+      | order by timestamp desc
+
+  - name: Non-System Operations
+    description: Show operations performed by users (not system)
+    category: Security
+    query: |
+      ActivityLogs
+      | where actor_id != "system"
+      | order by timestamp desc
+
+  # ─── Advanced Queries ─────────────────────────────────────────────
+  - name: Deletes in Last Hour
+    description: Recent deletions - useful for incident response
+    category: Advanced
+    query: |
+      ActivityLogs
+      | where action == "DELETE"
+      | where timestamp > ago(1h)
+      | order by timestamp desc
+
+  - name: Failed Creates
+    description: Resource creation failures
+    category: Advanced
+    query: |
+      ActivityLogs
+      | where action == "CREATE"
+      | where status == "Failed"
+      | order by timestamp desc
+
+  - name: Top 50 Recent Events
+    description: Limited result set for performance
+    category: Advanced
+    query: |
+      ActivityLogs
+      | order by timestamp desc
+      | take 50
+
+  - name: Specific Resource
+    description: Events for a specific resource (edit resource_name)
+    category: Advanced
+    query: |
+      ActivityLogs
+      | where resource_name == "your-resource-name"
+      | order by timestamp desc

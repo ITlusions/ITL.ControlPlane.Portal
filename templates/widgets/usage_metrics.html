@@ -1,0 +1,65 @@
+{# Usage Metrics Widget - Resource usage and cost estimation #}
+{% set metrics = widget_data.metrics if widget_data and widget_data.metrics else {} %}
+<div class="usage-metrics-widget" id="usage-metrics-widget">
+  <div class="metrics-grid">
+    {# CPU Usage #}
+    <div class="metric-card">
+      <div class="metric-icon cpu"><i class="bi bi-cpu"></i></div>
+      <div class="metric-info">
+        <div class="metric-label">CPU Usage</div>
+        <div class="metric-value">{{ metrics.cpu or 45 }}<span class="metric-unit">%</span></div>
+        <div class="metric-bar">
+          <div class="bar-fill cpu-fill" style="width: {{ metrics.cpu or 45 }}%"></div>
+        </div>
+      </div>
+    </div>
+    
+    {# Memory Usage #}
+    <div class="metric-card">
+      <div class="metric-icon memory"><i class="bi bi-memory"></i></div>
+      <div class="metric-info">
+        <div class="metric-label">Memory</div>
+        <div class="metric-value">{{ metrics.memory or 62 }}<span class="metric-unit">%</span></div>
+        <div class="metric-bar">
+          <div class="bar-fill memory-fill" style="width: {{ metrics.memory or 62 }}%"></div>
+        </div>
+      </div>
+    </div>
+    
+    {# Storage #}
+    <div class="metric-card">
+      <div class="metric-icon storage"><i class="bi bi-hdd"></i></div>
+      <div class="metric-info">
+        <div class="metric-label">Storage</div>
+        <div class="metric-value">{{ metrics.storage_gb or 128 }}<span class="metric-unit">GB</span></div>
+        <div class="metric-bar">
+          <div class="bar-fill storage-fill" style="width: {{ metrics.storage_pct or 38 }}%"></div>
+        </div>
+      </div>
+    </div>
+    
+    {# Network #}
+    <div class="metric-card">
+      <div class="metric-icon network"><i class="bi bi-arrow-left-right"></i></div>
+      <div class="metric-info">
+        <div class="metric-label">Network I/O</div>
+        <div class="metric-value">{{ metrics.network or 2.4 }}<span class="metric-unit">GB/h</span></div>
+        <div class="metric-bar">
+          <div class="bar-fill network-fill" style="width: {{ metrics.network_pct or 24 }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="cost-estimate">
+    <div class="cost-label">Est. Monthly Cost</div>
+    <div class="cost-value">
+      <span class="currency">€</span>
+      <span class="amount" id="cost-amount">{{ metrics.estimated_cost or '1,250' }}</span>
+    </div>
+    <div class="cost-trend {{ 'up' if (metrics.cost_trend or 5) > 0 else 'down' }}">
+      <i class="bi bi-{{ 'arrow-up' if (metrics.cost_trend or 5) > 0 else 'arrow-down' }}"></i>
+      {{ metrics.cost_trend|abs if metrics.cost_trend else 5 }}% vs last month
+    </div>
+  </div>
+</div>

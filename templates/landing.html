@@ -1,0 +1,673 @@
+{% extends "base.html" %}
+
+{% block title %}ITL Control Plane Portal{% endblock %}
+
+{% block page_content %}
+<style>
+  .landing-hero {
+    background: linear-gradient(135deg, #1a365d 0%, #0d1b2a 100%);
+    color: white;
+    padding: 60px 40px;
+    text-align: center;
+    margin: -20px -20px 30px -20px;
+    border-bottom: 3px solid #4299e1;
+  }
+  .landing-hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+  }
+  .landing-hero .tagline {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto 1.5rem;
+  }
+  .landing-hero .cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .landing-hero .btn-primary {
+    background: #4299e1;
+    border-color: #4299e1;
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 28px;
+    font-size: 1rem;
+  }
+  .landing-hero .btn-primary:hover {
+    background: #3182ce;
+    border-color: #3182ce;
+  }
+  .landing-hero .btn-outline-light {
+    padding: 10px 28px;
+    font-size: 1rem;
+  }
+  
+  /* Widget System Styles */
+  .widgets-section {
+    padding: 0 20px 40px;
+  }
+  .widget-container {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+    overflow: hidden;
+    height: 100%;
+  }
+  .widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+  }
+  .widget-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: .95rem;
+    color: #333;
+    margin: 0;
+  }
+  .widget-title i {
+    color: #ffa500;
+    font-size: 1.1rem;
+  }
+  .widget-badge {
+    font-size: .65rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #e9ecef;
+    color: #666;
+  }
+  .widget-badge.admin { background: #f8d7da; color: #721c24; }
+  .widget-body {
+    padding: 18px;
+  }
+  
+  /* Stats Widget */
+  .stat-box {
+    text-align: center;
+    padding: 15px 10px;
+  }
+  .stat-box .number {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #ffa500;
+    line-height: 1;
+  }
+  .stat-box .label {
+    color: #666;
+    font-size: .85rem;
+    margin-top: 4px;
+  }
+  
+  /* Quick Links Widget */
+  .quick-links-widget .quick-link-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    text-decoration: none;
+    color: #333;
+    transition: background 0.2s;
+  }
+  .quick-links-widget .quick-link-item:last-child { margin-bottom: 0; }
+  .quick-links-widget .quick-link-item:hover {
+    background: #e9ecef;
+    color: #333;
+  }
+  .quick-links-widget .quick-link-item i {
+    font-size: 1.3rem;
+    margin-right: 12px;
+    color: #ffa500;
+    width: 28px;
+    text-align: center;
+  }
+  .quick-links-widget .quick-link-item .link-text {
+    flex: 1;
+  }
+  .quick-links-widget .quick-link-item .link-text strong {
+    display: block;
+    font-size: .9rem;
+  }
+  .quick-links-widget .quick-link-item .link-text small {
+    color: #666;
+    font-size: .78rem;
+  }
+  .quick-links-widget .quick-link-item .arrow {
+    color: #999;
+  }
+
+  /* Container Stack Widget */
+  .container-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .container-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .container-card .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+  .container-card .status-dot.running { background: #28a745; }
+  .container-card .status-dot.stopped { background: #dc3545; }
+  .container-card .status-dot.paused { background: #ffc107; }
+  .container-card .container-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .container-card .container-name {
+    font-weight: 600;
+    font-size: .85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .container-card .container-image {
+    font-size: .75rem;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .container-card .container-ports {
+    font-size: .7rem;
+    color: #999;
+    margin-top: 2px;
+  }
+  .host-info-bar {
+    background: #e9ecef;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 14px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: .8rem;
+    color: #555;
+  }
+  .host-info-bar span { display: flex; align-items: center; gap: 6px; }
+  .host-info-bar i { color: #ffa500; }
+
+  /* Recent Activity Widget */
+  .activity-list { list-style: none; padding: 0; margin: 0; }
+  .activity-list li {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: .85rem;
+  }
+  .activity-list li:last-child { border-bottom: none; }
+  .activity-list .action-badge {
+    font-size: .7rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 10px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .activity-list .action-badge.create { background: #d4edda; color: #155724; }
+  .activity-list .action-badge.update { background: #fff3cd; color: #856404; }
+  .activity-list .action-badge.delete { background: #f8d7da; color: #721c24; }
+  .activity-list .event-details { flex: 1; }
+  .activity-list .event-time { color: #999; font-size: .75rem; }
+
+  /* Override base layout for landing page - HIDE SIDEBAR */
+  .sidebar {
+    display: none !important;
+  }
+  .page-wrapper {
+    display: block !important;
+  }
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     RESPONSIVE LANDING PAGE
+     ══════════════════════════════════════════════════════════ */
+  
+  /* ── Mobile (< 576px) ──────────────────────────────────── */
+  @media (max-width: 575.98px) {
+    .landing-hero {
+      padding: 30px 16px;
+      margin: -20px -12px 20px -12px;
+    }
+    .landing-hero h1 {
+      font-size: 1.5rem;
+    }
+    .landing-hero .tagline {
+      font-size: .9rem;
+      margin-bottom: 1rem;
+    }
+    .landing-hero .cta-buttons {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .landing-hero .btn-primary,
+    .landing-hero .btn-outline-light {
+      width: 100%;
+      padding: 12px 20px;
+    }
+    
+    .widgets-section {
+      padding: 0 8px 20px;
+    }
+    .widget-container {
+      margin-bottom: 12px;
+    }
+    .widget-header {
+      padding: 10px 14px;
+    }
+    .widget-title {
+      font-size: .85rem;
+    }
+    .widget-body {
+      padding: 12px;
+    }
+    
+    .stat-box {
+      padding: 10px 6px;
+    }
+    .stat-box .number {
+      font-size: 1.6rem;
+    }
+    .stat-box .label {
+      font-size: .7rem;
+    }
+    
+    .container-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .container-card {
+      padding: 10px;
+    }
+    
+    .host-info-bar {
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px;
+      font-size: .75rem;
+    }
+    
+    .quick-links-widget .quick-link-item {
+      padding: 10px 12px;
+    }
+    .quick-links-widget .quick-link-item i {
+      font-size: 1.1rem;
+      margin-right: 10px;
+    }
+    
+    .activity-list li {
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-start;
+      padding: 12px 0;
+    }
+    .activity-list .action-badge {
+      margin-right: 0;
+    }
+  }
+  
+  /* ── Small Tablets (576px - 767px) ─────────────────────── */
+  @media (min-width: 576px) and (max-width: 767.98px) {
+    .landing-hero {
+      padding: 40px 24px;
+    }
+    .landing-hero h1 {
+      font-size: 1.8rem;
+    }
+    
+    .widgets-section {
+      padding: 0 16px 30px;
+    }
+    
+    .stat-box .number {
+      font-size: 1.8rem;
+    }
+    
+    .container-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  /* ── Tablets (768px - 991px) ───────────────────────────── */
+  @media (min-width: 768px) and (max-width: 991.98px) {
+    .landing-hero {
+      padding: 50px 30px;
+    }
+    .landing-hero h1 {
+      font-size: 2rem;
+    }
+    
+    .stat-box .number {
+      font-size: 2rem;
+    }
+    
+    .container-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  /* ── Extra Large / Ultrawide (1400px+) ────────────────── */
+  @media (min-width: 1400px) {
+    .landing-hero {
+      padding: 80px 60px;
+    }
+    .landing-hero h1 {
+      font-size: 3rem;
+    }
+    .landing-hero .tagline {
+      font-size: 1.25rem;
+    }
+    
+    .widget-body {
+      padding: 24px;
+    }
+    
+    .stat-box .number {
+      font-size: 2.8rem;
+    }
+    
+    .container-grid {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     SOC/NOC MODE — Admin Operations Center
+     ══════════════════════════════════════════════════════════ */
+  .soc-mode {
+    --soc-bg: #0d1117;
+    --soc-surface: #161b22;
+    --soc-border: #30363d;
+    --soc-text: #c9d1d9;
+    --soc-text-muted: #8b949e;
+    --soc-accent: #ffa500;
+    --soc-success: #3fb950;
+    --soc-warning: #d29922;
+    --soc-danger: #f85149;
+    --soc-info: #58a6ff;
+  }
+  
+  .soc-mode .landing-hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+    padding: 20px 30px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--soc-border);
+  }
+  .soc-mode .landing-hero h1 {
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .soc-mode .landing-hero .tagline {
+    display: none;
+  }
+  .soc-mode .landing-hero .cta-buttons {
+    display: none;
+  }
+  
+
+  
+  .soc-mode .widgets-section {
+    background: var(--soc-bg);
+    padding: 12px;
+    min-height: calc(100vh - 140px);
+  }
+  
+  .soc-mode .widget-container {
+    background: var(--soc-surface);
+    border: 1px solid var(--soc-border);
+    box-shadow: none;
+    margin-bottom: 12px;
+  }
+  
+  .soc-mode .widget-header {
+    background: rgba(0,0,0,0.2);
+    border-bottom-color: var(--soc-border);
+    padding: 10px 14px;
+  }
+  
+  .soc-mode .widget-title {
+    color: var(--soc-text);
+    font-size: .85rem;
+  }
+  .soc-mode .widget-title i {
+    color: var(--soc-accent);
+  }
+  
+  .soc-mode .widget-body {
+    padding: 14px;
+    color: var(--soc-text);
+  }
+  
+  .soc-mode .stat-box .number {
+    color: var(--soc-accent);
+    font-size: 1.8rem;
+  }
+  .soc-mode .stat-box .label {
+    color: var(--soc-text-muted);
+  }
+  
+  .soc-mode .container-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--soc-border);
+  }
+  .soc-mode .container-card .container-name {
+    color: var(--soc-text);
+  }
+  .soc-mode .container-card .container-image,
+  .soc-mode .container-card .container-ports {
+    color: var(--soc-text-muted);
+  }
+  
+  .soc-mode .host-info-bar {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--soc-border);
+    color: var(--soc-text-muted);
+  }
+  .soc-mode .host-info-bar i {
+    color: var(--soc-accent);
+  }
+  
+  .soc-mode .quick-links-widget .quick-link-item {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--soc-border);
+    color: var(--soc-text);
+  }
+  .soc-mode .quick-links-widget .quick-link-item:hover {
+    background: rgba(255,165,0,0.1);
+    border-color: var(--soc-accent);
+  }
+  .soc-mode .quick-links-widget .quick-link-item strong {
+    color: var(--soc-text);
+  }
+  .soc-mode .quick-links-widget .quick-link-item small {
+    color: var(--soc-text-muted);
+  }
+  .soc-mode .quick-links-widget .quick-link-item .arrow {
+    color: var(--soc-text-muted);
+  }
+  
+  .soc-mode .activity-list li {
+    border-bottom-color: var(--soc-border);
+    color: var(--soc-text);
+  }
+  .soc-mode .activity-list .event-time {
+    color: var(--soc-text-muted);
+  }
+  .soc-mode .activity-list .action-badge.create { background: rgba(63,185,80,0.2); color: var(--soc-success); }
+  .soc-mode .activity-list .action-badge.update { background: rgba(210,153,34,0.2); color: var(--soc-warning); }
+  .soc-mode .activity-list .action-badge.delete { background: rgba(248,81,73,0.2); color: var(--soc-danger); }
+  
+  /* SOC Mode Toggle Button */
+  .soc-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--soc-surface);
+    border: 1px solid var(--soc-border);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: .8rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.2s;
+  }
+  .soc-toggle:hover {
+    background: var(--soc-accent);
+    border-color: var(--soc-accent);
+    color: #000;
+  }
+  .soc-toggle i { font-size: 1rem; }
+  
+  /* Hide SOC toggle on mobile */
+  @media (max-width: 767.98px) {
+    .soc-toggle { display: none; }
+  }
+</style>
+
+<!-- Hero Section -->
+<div class="landing-hero">
+  <h1><i class="bi bi-cloud-fill me-2"></i>ITL Control Plane Portal</h1>
+  <p class="tagline">
+    Self-service resource management. Browse and manage your cloud resources.
+  </p>
+  <div class="cta-buttons">
+    <a href="/resources/all" class="btn btn-primary">
+      <i class="bi bi-grid-3x3-gap me-2"></i>Browse Resources
+    </a>
+    {% if user %}
+      <a href="/resources/subscriptions" class="btn btn-outline-light">
+        <i class="bi bi-credit-card me-2"></i>My Subscriptions
+      </a>
+    {% else %}
+      <a href="/login" class="btn btn-outline-light">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Widget-Based Dashboard -->
+<div class="widgets-section">
+  <div class="container-fluid">
+    <div class="row">
+      {% for widget in widgets %}
+      <div class="{{ widget.size.value }} mb-3">
+        <div class="widget-container" id="widget-{{ widget.id }}" {% if widget.refresh_interval > 0 %}data-refresh="{{ widget.refresh_interval }}"{% endif %}>
+          <div class="widget-header">
+            <h3 class="widget-title">
+              <i class="bi {{ widget.icon }}"></i>
+              {{ widget.title }}
+            </h3>
+            {% set role_values = widget.roles | map(attribute='value') | list %}
+            {% if 'platform_admin' in role_values %}
+            <span class="widget-badge admin">Admin</span>
+            {% endif %}
+          </div>
+          <div class="widget-body">
+            {% include widget.template ignore missing %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Widget Configurator (for customizing visible widgets) -->
+{% if user %}
+{% include "widgets/widget_configurator.html" ignore missing %}
+{% endif %}
+
+<script>
+  // SOC/NOC Mode Toggle (global function, also used from header)
+  window.toggleSOCMode = function() {
+    const pageContent = document.querySelector('.main-content') || document.body;
+    const toggleIcon = document.getElementById('socToggleIcon');
+    const toggleBtn = document.getElementById('socToggleBtn');
+    const isSOC = pageContent.classList.toggle('soc-mode');
+    
+    // Save preference
+    localStorage.setItem('socMode', isSOC ? 'on' : 'off');
+    
+    // Update icon and button state
+    if (toggleIcon) {
+      toggleIcon.className = isSOC ? 'bi bi-sun' : 'bi bi-display';
+    }
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('soc-active', isSOC);
+      toggleBtn.title = isSOC ? 'Switch to Normal Mode' : 'Switch to SOC/NOC Mode';
+    }
+    
+    // Start/stop clock
+    if (isSOC) {
+      startSOCClock();
+    }
+  };
+  
+  // SOC Clock
+  let socClockInterval = null;
+  function startSOCClock() {
+    const updateClock = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const el = document.getElementById('socTime');
+      if (el) el.textContent = timeStr;
+    };
+    updateClock();
+    if (socClockInterval) clearInterval(socClockInterval);
+    socClockInterval = setInterval(updateClock, 1000);
+  }
+  
+  // Restore SOC mode preference on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedMode = localStorage.getItem('socMode');
+    const toggleIcon = document.getElementById('socToggleIcon');
+    const toggleBtn = document.getElementById('socToggleBtn');
+    
+    if (savedMode === 'on') {
+      const pageContent = document.querySelector('.main-content') || document.body;
+      pageContent.classList.add('soc-mode');
+      if (toggleIcon) toggleIcon.className = 'bi bi-sun';
+      if (toggleBtn) {
+        toggleBtn.classList.add('soc-active');
+        toggleBtn.title = 'Switch to Normal Mode';
+      }
+      startSOCClock();
+    }
+  });
+</script>
+{% endblock %}

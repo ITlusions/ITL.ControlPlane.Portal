@@ -1,0 +1,609 @@
+{# Container Stack Widget - Matches /infra page styling #}
+{% set infra = widget_data.infra %}
+{% if infra and not infra.error %}
+<div class="container-stack-widget" id="container-stack-widget">
+
+  {% if infra.runtime == 'kubernetes' %}
+  {# ═══════════════ KUBERNETES VIEW ═══════════════ #}
+  <div class="host-strip">
+    <div class="host-strip-info">
+      <div class="host-chip"><i class="bi bi-boxes"></i> Pods <span class="val">{{ infra.pods|length }}</span></div>
+      <div class="host-chip"><i class="bi bi-rocket"></i> Deploys <span class="val">{{ infra.deployments|length }}</span></div>
+      <div class="host-chip"><i class="bi bi-signpost-2"></i> Services <span class="val">{{ infra.services|length }}</span></div>
+      <div class="host-chip"><i class="bi bi-layers"></i> NS <span class="val">{{ infra.namespace }}</span></div>
+    </div>
+    <div class="size-selector">
+      <label for="card-size-select" class="size-label"><i class="bi bi-grid-3x3-gap"></i></label>
+      <select id="card-size-select" class="size-select" title="Card size">
+        <option value="small">S</option>
+        <option value="medium" selected>M</option>
+        <option value="large">L</option>
+      </select>
+    </div>
+  </div>
+
+  {# Pod Grid #}
+  <div class="ctn-grid">
+    {% for pod in infra.pods %}
+    <div class="ctn-card">
+      <div class="ctn-card-header">
+        <div class="ctn-name">
+          <span class="status-dot status-{{ 'running' if pod.status == 'Running' else ('exited' if pod.status == 'Succeeded' else 'other') }}"></span>
+          {{ pod.name[:30] }}{% if pod.name|length > 30 %}...{% endif %}
+        </div>
+        <span class="ctn-badge badge-{{ 'running' if pod.status == 'Running' else ('exited' if pod.status in ['Succeeded', 'Failed'] else 'other') }}">{{ pod.status }}</span>
+      </div>
+      <div class="ctn-card-body">
+        <div class="ctn-row">
+          <span class="ctn-label">Node</span>
+          <span class="ctn-value">{{ pod.node or '—' }}</span>
+        </div>
+        <div class="ctn-row">
+          <span class="ctn-label">IP</span>
+          <span class="ctn-value"><code>{{ pod.ip or '—' }}</code></span>
+        </div>
+        {% if pod.uptime %}
+        <div class="ctn-row">
+          <span class="ctn-label">Uptime</span>
+          <span class="ctn-value">{{ pod.uptime }}</span>
+        </div>
+        {% endif %}
+        {% if pod.containers %}
+        <div class="ctn-row">
+          <span class="ctn-label">Containers</span>
+          <span class="ctn-value">
+            {% for ct in pod.containers[:2] %}
+              <span class="health-badge health-{{ 'healthy' if ct.ready else 'unhealthy' }}">{{ ct.name }}</span>
+            {% endfor %}
+            {% if pod.containers|length > 2 %}<span class="port-badge more">+{{ pod.containers|length - 2 }}</span>{% endif %}
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  {# ═══════════════ DOCKER VIEW ═══════════════ #}
+  {# Host Info Strip - Matches /infra page #}
+  {% if infra.host %}
+  <div class="host-strip">
+    <div class="host-strip-info">
+      <div class="host-chip"><i class="bi bi-cpu"></i> CPU <span class="val">{{ infra.host.cpus }}</span></div>
+      <div class="host-chip"><i class="bi bi-memory"></i> RAM <span class="val">{{ infra.host.memory_gb }} GB</span></div>
+      <div class="host-chip"><i class="bi bi-box-seam"></i> Containers <span class="val">{{ infra.host.containers_running }} / {{ infra.host.containers_total }}</span></div>
+      <div class="host-chip"><i class="bi bi-gear"></i> Docker <span class="val">{{ infra.host.docker_version }}</span></div>
+    </div>
+    <div class="size-selector">
+      <label for="card-size-select" class="size-label"><i class="bi bi-grid-3x3-gap"></i></label>
+      <select id="card-size-select" class="size-select" title="Card size">
+        <option value="small">S</option>
+        <option value="medium" selected>M</option>
+        <option value="large">L</option>
+      </select>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Container Grid - Uses /infra card styling #}
+  <div class="ctn-grid">
+    {% for c in infra.containers %}
+    <a href="/infra/{{ c.id }}" class="ctn-link" title="View {{ c.service }} details">
+      <div class="ctn-card">
+        <div class="ctn-card-header">
+          <div class="ctn-name">
+            <span class="status-dot status-{{ c.status }}"></span>
+            {{ c.service }}
+          </div>
+          <span class="ctn-badge badge-{{ c.status if c.status in ['running', 'exited', 'paused'] else 'other' }}">{{ c.status }}</span>
+        </div>
+        <div class="ctn-card-body">
+          <div class="ctn-row">
+            <span class="ctn-label">Image</span>
+            <span class="ctn-value"><code>{{ c.image.split(':')[0].split('/')[-1] }}{% if ':' in c.image %}:{{ c.image.split(':')[-1] }}{% endif %}</code></span>
+          </div>
+          {% if c.ports %}
+          <div class="ctn-row">
+            <span class="ctn-label">Ports</span>
+            <span class="ctn-value">
+              {% for p in c.ports[:3] %}
+                <span class="port-badge">{{ p.host }} → {{ p.container }}</span>
+              {% endfor %}
+              {% if c.ports|length > 3 %}<span class="port-badge more">+{{ c.ports|length - 3 }}</span>{% endif %}
+            </span>
+          </div>
+          {% endif %}
+          {% if c.health != "none" %}
+          <div class="ctn-row">
+            <span class="ctn-label">Health</span>
+            <span class="health-badge health-{{ c.health }}">
+              {% if c.health == "healthy" %}<i class="bi bi-check-circle-fill"></i>
+              {% elif c.health == "unhealthy" %}<i class="bi bi-x-circle-fill"></i>
+              {% elif c.health == "starting" %}<i class="bi bi-arrow-repeat"></i>
+              {% endif %}
+              {{ c.health }}
+            </span>
+          </div>
+          {% endif %}
+          {% if c.uptime %}
+          <div class="ctn-row">
+            <span class="ctn-label">Uptime</span>
+            <span class="ctn-value">{{ c.uptime }}</span>
+          </div>
+          {% endif %}
+          {# Extra info shown on hover #}
+          <div class="ctn-row ctn-hover-row">
+            <span class="ctn-label">Container</span>
+            <span class="ctn-value"><code>{{ c.name }}</code></span>
+          </div>
+          <div class="ctn-row ctn-hover-row">
+            <span class="ctn-label">ID</span>
+            <span class="ctn-value"><code>{{ c.id }}</code></span>
+          </div>
+          {% if c.networks %}
+          <div class="ctn-row ctn-hover-row">
+            <span class="ctn-label">Network</span>
+            <span class="ctn-value">{{ c.networks[0].name }}{% if c.networks|length > 1 %} +{{ c.networks|length - 1 }}{% endif %}</span>
+          </div>
+          {% endif %}
+        </div>
+        <div class="ctn-card-footer">
+          <span class="click-hint"><i class="bi bi-arrow-right-circle me-1"></i>View details</span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {# View All Link #}
+  <div class="mt-3 text-end">
+    <a href="/infra" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-hdd-rack me-1"></i>View Full Infrastructure
+    </a>
+  </div>
+
+  {% endif %}{# end runtime check (kubernetes vs docker) #}
+</div>
+
+<style>
+  /* Size Selector */
+  .container-stack-widget .size-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .container-stack-widget .size-label {
+    color: #888;
+    font-size: .8rem;
+    margin-bottom: 0;
+  }
+  .container-stack-widget .size-select {
+    padding: 2px 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: .75rem;
+    background: #fff;
+    cursor: pointer;
+    min-width: 40px;
+  }
+  .container-stack-widget .size-select:focus {
+    outline: none;
+    border-color: #f7941d;
+  }
+
+  /* Host Strip - Matches /infra */
+  .container-stack-widget .host-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #fafafa;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .container-stack-widget .host-strip-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
+  }
+  .container-stack-widget .host-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .8rem;
+    color: #666;
+  }
+  .container-stack-widget .host-chip i {
+    color: #888;
+  }
+  .container-stack-widget .host-chip .val {
+    font-weight: 600;
+    color: #333;
+  }
+
+  /* Grid - CSS Variables for configurable sizes */
+  .container-stack-widget .ctn-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--card-width, 200px));
+    gap: 12px;
+    justify-content: space-between;
+  }
+  .container-stack-widget .ctn-link {
+    width: var(--card-width, 200px);
+    height: var(--card-height, 220px);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Size variants */
+  .container-stack-widget.size-small {
+    --card-width: 160px;
+    --card-height: 180px;
+  }
+  .container-stack-widget.size-medium {
+    --card-width: 200px;
+    --card-height: 220px;
+  }
+  .container-stack-widget.size-large {
+    --card-width: 260px;
+    --card-height: 280px;
+  }
+
+  /* Adjust fonts for small size */
+  .container-stack-widget.size-small .ctn-name { font-size: .7rem; max-width: 80px; }
+  .container-stack-widget.size-small .ctn-badge { font-size: .55rem; }
+  .container-stack-widget.size-small .ctn-card-body { font-size: .68rem; }
+  .container-stack-widget.size-small .ctn-label { font-size: .62rem; min-width: 38px; }
+  .container-stack-widget.size-small .ctn-value code { font-size: .6rem; }
+  .container-stack-widget.size-small .port-badge { font-size: .58rem; }
+  .container-stack-widget.size-small .health-badge { font-size: .6rem; }
+  .container-stack-widget.size-small .click-hint { font-size: .6rem; }
+
+  /* Adjust fonts for large size */
+  .container-stack-widget.size-large .ctn-name { font-size: .9rem; max-width: 140px; }
+  .container-stack-widget.size-large .ctn-badge { font-size: .7rem; }
+  .container-stack-widget.size-large .ctn-card-body { font-size: .82rem; padding: 10px 14px; }
+  .container-stack-widget.size-large .ctn-label { font-size: .78rem; min-width: 55px; }
+  .container-stack-widget.size-large .ctn-value code { font-size: .75rem; }
+  .container-stack-widget.size-large .port-badge { font-size: .72rem; }
+  .container-stack-widget.size-large .health-badge { font-size: .75rem; }
+  .container-stack-widget.size-large .click-hint { font-size: .75rem; }
+  .container-stack-widget.size-large .ctn-card-header { padding: 10px 14px; }
+  .container-stack-widget.size-large .ctn-card-footer { padding: 6px 14px; }
+
+  /* Card - Matches /infra styling */
+  .container-stack-widget .ctn-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .container-stack-widget .ctn-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    border-color: #f7941d;
+  }
+
+  /* Card Header */
+  .container-stack-widget .ctn-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+  }
+  .container-stack-widget .ctn-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: .8rem;
+    color: #333;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 100px;
+  }
+
+  /* Status Dot */
+  .container-stack-widget .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .container-stack-widget .status-dot.status-running { background: #28a745; }
+  .container-stack-widget .status-dot.status-exited { background: #dc3545; }
+  .container-stack-widget .status-dot.status-paused { background: #ffc107; }
+
+  /* Status Badge */
+  .container-stack-widget .ctn-badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: .6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .2px;
+    flex-shrink: 0;
+  }
+  .container-stack-widget .badge-running { background: #d4edda; color: #155724; }
+  .container-stack-widget .badge-exited { background: #f8d7da; color: #721c24; }
+  .container-stack-widget .badge-paused { background: #fff3cd; color: #856404; }
+  .container-stack-widget .badge-other { background: #e2e3e5; color: #383d41; }
+
+  /* Card Body */
+  .container-stack-widget .ctn-card-body {
+    padding: 8px 12px;
+    font-size: .75rem;
+    flex: 1;
+    overflow: hidden;
+  }
+  .container-stack-widget .ctn-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+    align-items: flex-start;
+  }
+  .container-stack-widget .ctn-label {
+    min-width: 45px;
+    color: #888;
+    font-weight: 500;
+    flex-shrink: 0;
+    font-size: .7rem;
+  }
+  .container-stack-widget .ctn-value {
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .container-stack-widget .ctn-value code {
+    background: #f5f5f5;
+    padding: 1px 3px;
+    border-radius: 3px;
+    font-size: .68rem;
+  }
+
+  /* Hover rows - Hidden by default, shown on hover */
+  .container-stack-widget .ctn-hover-row {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-bottom: 0;
+    transition: all 0.2s ease;
+  }
+  .container-stack-widget .ctn-card:hover .ctn-hover-row {
+    max-height: 24px;
+    opacity: 1;
+    margin-bottom: 4px;
+  }
+
+  /* Port Badge */
+  .container-stack-widget .port-badge {
+    display: inline-block;
+    padding: 1px 4px;
+    background: #e8f0fe;
+    color: #1a73e8;
+    border-radius: 3px;
+    font-size: .65rem;
+    font-family: monospace;
+    margin-right: 2px;
+    margin-bottom: 2px;
+  }
+  .container-stack-widget .port-badge.more {
+    background: #e9ecef;
+    color: #6c757d;
+  }
+
+  /* Health Badge */
+  .container-stack-widget .health-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: .68rem;
+  }
+  .container-stack-widget .health-badge.health-healthy { background: #d4edda; color: #155724; }
+  .container-stack-widget .health-badge.health-unhealthy { background: #f8d7da; color: #721c24; }
+  .container-stack-widget .health-badge.health-starting { background: #fff3cd; color: #856404; }
+
+  /* Card Footer - Click hint */
+  .container-stack-widget .ctn-card-footer {
+    padding: 4px 12px;
+    background: #fafafa;
+    border-top: 1px solid #eee;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+    margin-top: auto;
+  }
+  .container-stack-widget .ctn-card:hover .ctn-card-footer {
+    opacity: 1;
+  }
+  .container-stack-widget .click-hint {
+    font-size: .68rem;
+    color: #f7941d;
+    font-weight: 500;
+  }
+
+  /* SOC Mode Styles */
+  .soc-mode .container-stack-widget .size-select {
+    background: #21262d;
+    border-color: #30363d;
+    color: #e6edf3;
+  }
+  .soc-mode .container-stack-widget .size-select:focus {
+    border-color: #f7941d;
+  }
+  .soc-mode .container-stack-widget .size-label {
+    color: #8b949e;
+  }
+  .soc-mode .container-stack-widget .host-strip {
+    background: #21262d;
+    border-color: #30363d;
+  }
+  .soc-mode .container-stack-widget .host-chip {
+    color: #8b949e;
+  }
+  .soc-mode .container-stack-widget .host-chip i {
+    color: #6e7681;
+  }
+  .soc-mode .container-stack-widget .host-chip .val {
+    color: #e6edf3;
+  }
+  .soc-mode .container-stack-widget .ctn-card {
+    background: #161b22;
+    border-color: #30363d;
+  }
+  .soc-mode .container-stack-widget .ctn-card:hover {
+    border-color: #f7941d;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .soc-mode .container-stack-widget .ctn-card-header {
+    background: #21262d;
+    border-color: #30363d;
+  }
+  .soc-mode .container-stack-widget .ctn-name {
+    color: #e6edf3;
+  }
+  .soc-mode .container-stack-widget .ctn-card-body {
+    color: #e6edf3;
+  }
+  .soc-mode .container-stack-widget .ctn-label {
+    color: #8b949e;
+  }
+  .soc-mode .container-stack-widget .ctn-value {
+    color: #e6edf3;
+  }
+  .soc-mode .container-stack-widget .ctn-value code {
+    background: #30363d;
+    color: #e6edf3;
+  }
+  .soc-mode .container-stack-widget .port-badge {
+    background: #1f3a5f;
+    color: #58a6ff;
+  }
+  .soc-mode .container-stack-widget .port-badge.more {
+    background: #30363d;
+    color: #8b949e;
+  }
+  .soc-mode .container-stack-widget .health-badge.health-healthy {
+    background: #1a4d2e;
+    color: #3fb950;
+  }
+  .soc-mode .container-stack-widget .health-badge.health-unhealthy {
+    background: #5c2d2d;
+    color: #f85149;
+  }
+  .soc-mode .container-stack-widget .health-badge.health-starting {
+    background: #5c4d1a;
+    color: #d29922;
+  }
+  .soc-mode .container-stack-widget .ctn-card-footer {
+    background: #21262d;
+    border-color: #30363d;
+  }
+  .soc-mode .container-stack-widget .click-hint {
+    color: #f7941d;
+  }
+  .soc-mode .container-stack-widget .badge-running {
+    background: #1a4d2e;
+    color: #3fb950;
+  }
+  .soc-mode .container-stack-widget .badge-exited {
+    background: #5c2d2d;
+    color: #f85149;
+  }
+  .soc-mode .container-stack-widget .badge-paused {
+    background: #5c4d1a;
+    color: #d29922;
+  }
+  .soc-mode .container-stack-widget .badge-other {
+    background: #30363d;
+    color: #8b949e;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .container-stack-widget.size-large {
+      --card-width: 200px;
+      --card-height: 220px;
+    }
+    .container-stack-widget .host-strip {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .container-stack-widget .host-strip-info {
+      justify-content: flex-start;
+    }
+    .container-stack-widget .size-selector {
+      justify-content: flex-end;
+    }
+  }
+  @media (max-width: 576px) {
+    .container-stack-widget .ctn-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .container-stack-widget .ctn-link {
+      width: 100% !important;
+      height: 200px !important;
+    }
+    .container-stack-widget .host-strip-info {
+      flex-direction: column;
+      gap: 4px;
+    }
+    .container-stack-widget .size-selector {
+      width: 100%;
+      justify-content: flex-end;
+      border-top: 1px solid #eee;
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+  }
+  .soc-mode .container-stack-widget .size-selector {
+    border-color: #30363d;
+  }
+</style>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'itl-dashboard-container-card-size';
+  const widget = document.getElementById('container-stack-widget');
+  const select = document.getElementById('card-size-select');
+  
+  if (!widget || !select) return;
+  
+  // Load saved preference
+  const savedSize = localStorage.getItem(STORAGE_KEY) || 'medium';
+  
+  // Apply saved size
+  widget.classList.remove('size-small', 'size-medium', 'size-large');
+  widget.classList.add('size-' + savedSize);
+  select.value = savedSize;
+  
+  // Listen for changes
+  select.addEventListener('change', function() {
+    const size = this.value;
+    widget.classList.remove('size-small', 'size-medium', 'size-large');
+    widget.classList.add('size-' + size);
+    localStorage.setItem(STORAGE_KEY, size);
+  });
+})();
+</script>
+{% else %}
+<div class="text-center text-muted py-4">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  {% if infra.error %}{{ infra.error }}{% else %}No infrastructure data available{% endif %}
+</div>
+{% endif %}

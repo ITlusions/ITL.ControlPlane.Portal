@@ -1,0 +1,86 @@
+{# Alerts Widget - System notifications and alerts #}
+{% set alerts = widget_data.alerts if widget_data and widget_data.alerts else [] %}
+<div class="alerts-widget" id="alerts-widget">
+  <div class="alerts-header">
+    <span class="alerts-count">
+      <span class="count-badge" id="alerts-count">{{ alerts|length }}</span>
+      Active Alerts
+    </span>
+    <div class="alerts-filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="critical">Critical</button>
+      <button class="filter-btn" data-filter="warning">Warning</button>
+      <button class="filter-btn" data-filter="info">Info</button>
+    </div>
+  </div>
+  
+  <div class="alerts-list" id="alerts-list">
+    {% if alerts %}
+      {% for alert in alerts %}
+      <div class="alert-item alert-{{ alert.severity|lower }}" data-severity="{{ alert.severity|lower }}">
+        <div class="alert-icon">
+          {% if alert.severity|lower == 'critical' %}
+          <i class="bi bi-exclamation-octagon-fill"></i>
+          {% elif alert.severity|lower == 'warning' %}
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          {% else %}
+          <i class="bi bi-info-circle-fill"></i>
+          {% endif %}
+        </div>
+        <div class="alert-content">
+          <div class="alert-title">{{ alert.title }}</div>
+          <div class="alert-message">{{ alert.message }}</div>
+          <div class="alert-meta">
+            <span class="alert-source">{{ alert.source or 'System' }}</span>
+            <span class="alert-time">{{ alert.timestamp[:16] if alert.timestamp else 'Just now' }}</span>
+          </div>
+        </div>
+        <button class="alert-dismiss" title="Dismiss"><i class="bi bi-x"></i></button>
+      </div>
+      {% endfor %}
+    {% else %}
+      {# Sample alerts for demo #}
+      <div class="alert-item alert-warning" data-severity="warning">
+        <div class="alert-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="alert-content">
+          <div class="alert-title">High Memory Usage</div>
+          <div class="alert-message">Container 'api-gateway' is using 85% memory</div>
+          <div class="alert-meta">
+            <span class="alert-source">Monitoring</span>
+            <span class="alert-time">5 min ago</span>
+          </div>
+        </div>
+        <button class="alert-dismiss" title="Dismiss"><i class="bi bi-x"></i></button>
+      </div>
+      <div class="alert-item alert-info" data-severity="info">
+        <div class="alert-icon"><i class="bi bi-info-circle-fill"></i></div>
+        <div class="alert-content">
+          <div class="alert-title">Scheduled Maintenance</div>
+          <div class="alert-message">PostgreSQL backup scheduled in 2 hours</div>
+          <div class="alert-meta">
+            <span class="alert-source">Scheduler</span>
+            <span class="alert-time">1 hour ago</span>
+          </div>
+        </div>
+        <button class="alert-dismiss" title="Dismiss"><i class="bi bi-x"></i></button>
+      </div>
+      <div class="alert-item alert-critical" data-severity="critical">
+        <div class="alert-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+        <div class="alert-content">
+          <div class="alert-title">Certificate Expiring</div>
+          <div class="alert-message">TLS certificate for api.itl.cloud expires in 7 days</div>
+          <div class="alert-meta">
+            <span class="alert-source">Security</span>
+            <span class="alert-time">2 hours ago</span>
+          </div>
+        </div>
+        <button class="alert-dismiss" title="Dismiss"><i class="bi bi-x"></i></button>
+      </div>
+    {% endif %}
+  </div>
+  
+  <div class="alerts-empty" id="alerts-empty" style="display: none;">
+    <i class="bi bi-check-circle"></i>
+    <span>No alerts</span>
+  </div>
+</div>

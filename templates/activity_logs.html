@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>{{ title }} - ITlusions Control Plane</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --header-bg: #3e3e3e;
+      --orange-accent: #ffa500;
+      --sidebar-bg: #f5f5f5;
+      --sidebar-width: 240px;
+      --sidebar-hover: #e8e8e8;
+      --sidebar-active: #e0e7ff;
+      --sidebar-active-text: #3b5998;
+      --toolbar-border: #e0e0e0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #fff;
+      margin: 0;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      background-color: var(--header-bg);
+      padding: 0.75rem 0;
+      position: fixed; top: 0; width: 100%; z-index: 1000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .sitename { color: #fff; font-weight: 700; font-size: 1.5rem; margin: 0; }
+    .site-logo { width: 28px; height: 28px; background: #ffd700; border-radius: 4px; margin-right: 10px; flex-shrink: 0; }
+    .navmenu ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 1.5rem; }
+    .navmenu a { color: rgba(255,255,255,.8); text-decoration: none; font-size: .9rem; transition: color .3s; }
+    .navmenu a:hover { color: #fff; }
+    .navmenu a.active { color: var(--orange-accent); }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .page-wrapper { display: flex; margin-top: 56px; min-height: calc(100vh - 56px); }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      border-right: 1px solid #e0e0e0;
+      padding: 0;
+      overflow-y: auto;
+      position: relative;
+      height: calc(100vh - 56px);
+    }
+    .sidebar-search { padding: 12px 12px 8px; display: flex; gap: 6px; align-items: center; }
+    .sidebar-search input {
+      flex: 1; border: 1px solid #ccc; border-radius: 4px;
+      padding: 6px 10px; font-size: .85rem; background: #fff;
+    }
+    .sidebar-search input:focus { outline: none; border-color: var(--orange-accent); }
+    .sidebar-customize-btn {
+      background: none; border: 1px solid #ccc; border-radius: 4px;
+      padding: 6px 8px; cursor: pointer; color: #666;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-customize-btn:hover { background: #eee; color: #333; }
+    .sidebar-customize-btn.active { background: var(--orange-accent); color: #fff; border-color: var(--orange-accent); }
+
+    /* ── Customize Panel (inline) ────────────────────────────── */
+    .sidebar-customize-panel {
+      display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #fff; z-index: 100; flex-direction: column;
+    }
+    .sidebar-customize-panel.show { display: flex; }
+    .sidebar-panel-header {
+      padding: 12px 16px; border-bottom: 1px solid #eee;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fafafa;
+    }
+    .sidebar-panel-header h4 { margin: 0; font-size: .85rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 6px; }
+    .sidebar-panel-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #888; padding: 2px 6px; }
+    .sidebar-panel-close:hover { color: #333; }
+    .sidebar-panel-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .sidebar-panel-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      border-bottom: 1px solid #f5f5f5; cursor: grab; font-size: .8rem;
+    }
+    .sidebar-panel-item:hover { background: #f8f8f8; }
+    .sidebar-panel-item.dragging { opacity: .5; background: #e8f0fe; }
+    .sidebar-panel-item .drag-handle { color: #bbb; cursor: grab; font-size: .75rem; }
+    .sidebar-panel-item .cat-icon { width: 16px; text-align: center; color: #666; font-size: .8rem; }
+    .sidebar-panel-item .cat-label { flex: 1; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-panel-item .visibility-toggle {
+      position: relative; width: 32px; height: 18px; flex-shrink: 0;
+    }
+    .sidebar-panel-item .visibility-toggle input { opacity: 0; width: 0; height: 0; }
+    .sidebar-panel-item .visibility-toggle .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background: #ccc; border-radius: 18px; transition: .2s;
+    }
+    .sidebar-panel-item .visibility-toggle .slider:before {
+      position: absolute; content: ''; height: 12px; width: 12px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: .2s;
+    }
+    .sidebar-panel-item .visibility-toggle input:checked + .slider { background: var(--orange-accent); }
+    .sidebar-panel-item .visibility-toggle input:checked + .slider:before { transform: translateX(14px); }
+    .sidebar-panel-footer {
+      padding: 10px 12px; border-top: 1px solid #eee;
+      display: flex; gap: 8px;
+    }
+    .sidebar-panel-footer button {
+      padding: 6px 12px; border-radius: 4px; font-size: .8rem; cursor: pointer; flex: 1;
+    }
+    .sidebar-panel-footer .btn-reset { background: #f0f0f0; border: 1px solid #ccc; color: #333; }
+    .sidebar-panel-footer .btn-reset:hover { background: #e0e0e0; }
+    .sidebar-panel-footer .btn-save { background: var(--orange-accent); border: none; color: #fff; }
+    .sidebar-panel-footer .btn-save:hover { background: #e69500; }
+    .sidebar { position: relative; }
+    .sidebar-nav { list-style: none; margin: 0; padding: 0; }
+    .sidebar-nav .nav-header {
+      padding: 10px 16px 6px;
+      font-size: .8rem; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: .4px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+      transition: background .15s;
+    }
+    .sidebar-nav .nav-header:hover { background: var(--sidebar-hover); }
+    .sidebar-nav .nav-header .header-left { display: flex; align-items: center; gap: 6px; }
+    .sidebar-nav .nav-header .collapse-icon {
+      font-size: .7rem; color: #888; transition: transform .2s;
+    }
+    .sidebar-nav .nav-header.collapsed .collapse-icon { transform: rotate(-90deg); }
+    .sidebar-nav .nav-section {
+      overflow: hidden; transition: max-height .25s ease-out;
+    }
+    .sidebar-nav .nav-section.collapsed { max-height: 0 !important; }
+    .sidebar-nav .nav-divider { border-top: 1px solid #ddd; margin: 8px 12px; }
+    .sidebar-nav .nav-item a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 16px; text-decoration: none;
+      color: #333; font-size: .875rem;
+      border-left: 3px solid transparent;
+      transition: background .15s, border-color .15s;
+    }
+    .sidebar-nav .nav-item a:hover { background: var(--sidebar-hover); }
+    .sidebar-nav .nav-item a.active {
+      background: var(--sidebar-active);
+      border-left-color: var(--sidebar-active-text);
+      color: var(--sidebar-active-text);
+      font-weight: 600;
+    }
+    .sidebar-nav .nav-item a i { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* ── Content ────────────────────────────────────────────── */
+    .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    /* ── Page Title Bar ─────────────────────────────────────── */
+    .page-title-bar {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #fff;
+    }
+    .page-title-bar h1 { font-size: 1.35rem; font-weight: 600; margin: 0; color: #222; }
+    .page-title-bar .subtitle { font-size: .8rem; color: #888; margin-top: 2px; }
+
+    /* ── Toolbar ────────────────────────────────────────────── */
+    .toolbar {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      padding: 8px 24px;
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #fafafa;
+    }
+    .toolbar .tb-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border: 1px solid #ccc; border-radius: 4px;
+      background: #fff; color: #333; font-size: .8rem; cursor: pointer;
+      text-decoration: none; transition: background .15s;
+    }
+    .toolbar .tb-btn:hover { background: #f0f0f0; }
+    .toolbar .tb-btn i { font-size: .85rem; }
+    .toolbar .tb-sep { width: 1px; height: 24px; background: #ddd; margin: 0 4px; }
+
+    /* ── Filter Bar ─────────────────────────────────────────── */
+    .filter-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 8px 24px;
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #fff;
+    }
+    .filter-bar .filter-input {
+      border: 1px solid #ccc; border-radius: 4px; padding: 5px 10px;
+      font-size: .8rem; min-width: 180px;
+    }
+    .filter-bar .filter-input:focus { outline: none; border-color: var(--orange-accent); }
+    .filter-bar select {
+      border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px;
+      font-size: .8rem; background: #fff; cursor: pointer;
+    }
+
+    /* ── Data Table ──────────────────────────────────────────── */
+    .data-table-wrapper { flex: 1; overflow: auto; padding: 0; }
+    .data-table {
+      width: 100%; border-collapse: collapse; font-size: .875rem;
+    }
+    .data-table thead th {
+      padding: 10px 16px; text-align: left;
+      font-weight: 600; font-size: .8rem; color: #555;
+      background: #fafafa; border-bottom: 2px solid #e0e0e0;
+      position: sticky; top: 0; z-index: 2;
+      cursor: pointer; white-space: nowrap; user-select: none;
+    }
+    .data-table thead th:hover { background: #f0f0f0; }
+    .data-table tbody tr { border-bottom: 1px solid #f0f0f0; transition: background .1s; cursor: pointer; }
+    .data-table tbody tr:hover { background: #f5f8ff; }
+    .data-table tbody td { padding: 10px 16px; vertical-align: middle; }
+    .data-table .resource-link {
+      color: #2563eb; text-decoration: none; font-weight: 500;
+    }
+    .data-table .resource-link:hover { text-decoration: underline; }
+    .data-table .ellipsis-btn {
+      background: none; border: 1px solid transparent; border-radius: 4px;
+      padding: 2px 8px; cursor: pointer; color: #888; font-size: 1rem;
+    }
+    .data-table .ellipsis-btn:hover { background: #eee; border-color: #ccc; }
+
+    /* ── Badges ──────────────────────────────────────────────── */
+    .action-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: .75rem; font-weight: 500;
+    }
+    .action-badge.create { background: #d4edda; color: #155724; }
+    .action-badge.update { background: #fff3cd; color: #856404; }
+    .action-badge.delete { background: #f8d7da; color: #721c24; }
+    .action-badge.read { background: #d1ecf1; color: #0c5460; }
+    
+    .status-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: .75rem; font-weight: 500;
+    }
+    .status-badge.success, .status-badge.succeeded { background: #d4edda; color: #155724; }
+    .status-badge.failure, .status-badge.failed { background: #f8d7da; color: #721c24; }
+
+    /* ── Pagination ─────────────────────────────────────────── */
+    .pagination-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 24px;
+      border-top: 1px solid var(--toolbar-border);
+      background: #fafafa; font-size: .8rem; color: #666;
+    }
+    .pagination-bar .page-numbers { display: flex; align-items: center; gap: 2px; }
+    .pagination-bar .page-btn {
+      padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px;
+      background: #fff; cursor: pointer; font-size: .8rem; color: #333;
+      text-decoration: none; font-weight: 400;
+    }
+    .pagination-bar .page-btn:hover { background: #f0f0f0; }
+    .pagination-bar .page-btn.active { background: #e0e7ff; border-color: #93a8f5; color: #3b5998; font-weight: 600; }
+    .pagination-bar .page-btn.disabled { color: #ccc; cursor: default; pointer-events: none; }
+
+    /* ── Empty State ────────────────────────────────────────── */
+    .empty-state { padding: 80px 24px; text-align: center; color: #999; }
+    .empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    .footer {
+      background-color: var(--header-bg); color: rgba(255,255,255,.8);
+      padding: 1rem 0; text-align: center; font-size: .8rem;
+    }
+
+    /* ── Slide-Out Panel (Offcanvas) ─────────────────── */
+    .offcanvas-end { width: 480px !important; }
+    .offcanvas-header {
+      background: #f8f9fa; border-bottom: 1px solid #e0e0e0;
+      padding: 14px 20px;
+    }
+    .offcanvas-title { font-size: 1rem; font-weight: 600; color: #333; }
+    .offcanvas-body { padding: 0; }
+    .panel-toolbar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border-bottom: 1px solid #e0e0e0; background: #fafafa;
+    }
+    .panel-toolbar .tb-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px;
+      background: #fff; color: #333; font-size: .75rem; cursor: pointer;
+      text-decoration: none;
+    }
+    .panel-toolbar .tb-btn:hover { background: #f0f0f0; }
+    .panel-content { padding: 16px 20px; overflow-y: auto; height: calc(100% - 100px); }
+    .detail-section { margin-bottom: 20px; }
+    .detail-section h6 {
+      color: #666; font-size: .72rem; text-transform: uppercase;
+      letter-spacing: .5px; margin-bottom: 10px;
+      padding-bottom: 6px; border-bottom: 1px solid #eee;
+    }
+    .detail-row { display: flex; margin-bottom: 8px; font-size: .85rem; }
+    .detail-label { width: 110px; color: #888; flex-shrink: 0; }
+    .detail-value { flex: 1; color: #333; word-break: break-all; }
+    pre.json-block {
+      background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px;
+      padding: 10px; font-size: .78rem; max-height: 180px; overflow: auto;
+      margin: 0;
+    }
+
+    /* ── KQL Query Panel ───────────────────────────── */
+    .query-panel {
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #f8f9fa;
+    }
+    .query-toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 24px; cursor: pointer;
+      font-size: .8rem; color: #555;
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #fff;
+    }
+    .query-toggle:hover { background: #fafafa; }
+    .query-toggle i { transition: transform .2s; }
+    .query-toggle.expanded i { transform: rotate(90deg); }
+    .query-content {
+      display: none; padding: 16px 24px;
+    }
+    .query-content.show { display: block; }
+    .query-row {
+      display: flex; gap: 12px; margin-bottom: 12px;
+    }
+    .query-editor {
+      flex: 1; display: flex; flex-direction: column;
+    }
+    .query-textarea {
+      width: 100%; height: 80px; border: 1px solid #ccc; border-radius: 4px;
+      padding: 10px 12px; font-family: 'Consolas', 'Monaco', monospace;
+      font-size: .82rem; line-height: 1.5; resize: vertical;
+      background: #fff;
+    }
+    .query-textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+    .query-textarea::placeholder { color: #aaa; }
+    .query-sidebar {
+      width: 220px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .query-sidebar label { font-size: .72rem; color: #666; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 2px; }
+    .query-sidebar select, .query-sidebar input {
+      width: 100%; border: 1px solid #ccc; border-radius: 4px;
+      padding: 6px 10px; font-size: .8rem; background: #fff;
+    }
+    .query-sidebar select:focus, .query-sidebar input:focus {
+      outline: none; border-color: var(--orange-accent);
+    }
+    .query-actions {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .query-actions .btn-run {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 20px; border: none; border-radius: 4px;
+      background: #2563eb; color: #fff; font-size: .82rem; font-weight: 500;
+      cursor: pointer; transition: background .15s;
+    }
+    .query-actions .btn-run:hover { background: #1d4ed8; }
+    .query-actions .btn-run:disabled { background: #93c5fd; cursor: not-allowed; }
+    .query-actions .btn-secondary {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 14px; border: 1px solid #ccc; border-radius: 4px;
+      background: #fff; color: #333; font-size: .8rem; cursor: pointer;
+    }
+    .query-actions .btn-secondary:hover { background: #f0f0f0; }
+    .query-hint {
+      font-size: .72rem; color: #888; margin-top: 6px;
+    }
+    .query-hint code { background: #e9ecef; padding: 1px 4px; border-radius: 2px; font-size: .7rem; }
+    .sample-queries {
+      position: relative;
+    }
+    .sample-dropdown {
+      position: absolute; top: 100%; left: 0; z-index: 100;
+      width: 320px; max-height: 280px; overflow-y: auto;
+      background: #fff; border: 1px solid #ccc; border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15); display: none;
+    }
+    .sample-dropdown.show { display: block; }
+    .sample-item {
+      padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+      position: relative;
+    }
+    .sample-item:last-child { border-bottom: none; }
+    .sample-item:hover { background: #f5f8ff; }
+    .sample-item .sample-name { font-size: .82rem; font-weight: 500; color: #333; display: flex; align-items: center; gap: 6px; }
+    .sample-item .sample-desc { font-size: .72rem; color: #888; margin-top: 2px; }
+    .sample-category {
+      padding: 8px 14px 4px; font-size: .68rem; font-weight: 600; text-transform: uppercase;
+      color: #888; background: #f8f8f8; border-bottom: 1px solid #eee;
+      position: sticky; top: 0;
+    }
+    .sample-loading { padding: 20px; text-align: center; color: #888; font-size: .82rem; }
+    .user-badge {
+      font-size: .6rem; background: #6366f1; color: #fff; padding: 2px 6px;
+      border-radius: 10px; text-transform: uppercase; font-weight: 600;
+    }
+    .sample-item.user-query { padding-right: 40px; }
+    .delete-query-btn {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #999; cursor: pointer;
+      padding: 4px; font-size: .85rem; opacity: 0; transition: opacity .15s;
+    }
+    .sample-item:hover .delete-query-btn { opacity: 1; }
+    .delete-query-btn:hover { color: #dc3545; }
+    .query-history {
+      position: relative;
+    }
+    .history-dropdown {
+      position: absolute; top: 100%; right: 0; z-index: 100;
+      width: 400px; max-height: 300px; overflow-y: auto;
+      background: #fff; border: 1px solid #ccc; border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15); display: none;
+    }
+    .history-dropdown.show { display: block; }
+    .history-item {
+      padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+    }
+    .history-item:hover { background: #f5f8ff; }
+    .history-item .history-query {
+      font-family: 'Consolas', monospace; font-size: .78rem; color: #333;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .history-item .history-time { font-size: .7rem; color: #888; margin-top: 3px; }
+    .history-empty { padding: 20px; text-align: center; color: #888; font-size: .8rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
+      <a href="/" class="text-decoration-none d-flex align-items-center">
+        <div class="site-logo"></div>
+        <h1 class="sitename">ITlusions</h1>
+        <span class="text-white ms-1">.</span>
+      </a>
+      <nav class="navmenu">
+        <ul>
+          <li><a href="/">Dashboard</a></li>
+          <li><a href="http://localhost:8978" target="_blank">CloudBeaver</a></li>
+          <li><a href="http://localhost:7474" target="_blank">Neo4j</a></li>
+          <li><a href="http://localhost:8081/docs" target="_blank">Gateway</a></li>
+        </ul>
+      </nav>
+      <div class="d-flex align-items-center">
+        <span class="text-white me-3" style="font-size:.85rem;">Admin</span>
+        <button class="btn btn-outline-light btn-sm" style="font-size:.78rem;">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Wrapper: Sidebar + Content -->
+  <div class="page-wrapper">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- Customize Panel (inline) -->
+      <div class="sidebar-customize-panel" id="sidebarCustomizePanel">
+        <div class="sidebar-panel-header">
+          <h4><i class="bi bi-sliders"></i> Customize</h4>
+          <button class="sidebar-panel-close" onclick="closeSidebarCustomize()">&times;</button>
+        </div>
+        <div class="sidebar-panel-body" id="catList"></div>
+        <div class="sidebar-panel-footer">
+          <button class="btn-reset" onclick="resetSidebarPrefs()">Reset</button>
+          <button class="btn-save" onclick="saveSidebarCustomize()">Save</button>
+        </div>
+      </div>
+
+      <div class="sidebar-search">
+        <input type="text" placeholder="Search..." id="sidebarSearch">
+        <button class="sidebar-customize-btn" id="customizeBtn" onclick="openSidebarCustomize()" title="Customize sidebar">
+          <i class="bi bi-gear"></i>
+        </button>
+      </div>
+      <ul class="sidebar-nav" id="sidebarNav">
+        {% set ns = namespace(section_id='', in_section=false) %}
+        {% for item in sidebar_items %}
+          {% if item.get('is_header', False) and item.label %}
+            {% if ns.in_section %}</div>{% endif %}
+            {% set ns.section_id = item.label | lower | replace(' ', '-') | replace('/', '-') %}
+            <li class="nav-header" data-section="{{ ns.section_id }}" onclick="toggleSection('{{ ns.section_id }}')">
+              <span class="header-left"><i class="bi {{ item.icon }} me-1"></i>{{ item.label }}</span>
+              <i class="bi bi-chevron-down collapse-icon"></i>
+            </li>
+            <div class="nav-section" data-section="{{ ns.section_id }}">
+            {% set ns.in_section = true %}
+          {% elif item.get('is_divider', False) %}
+            <li class="nav-divider"></li>
+          {% else %}
+            <li class="nav-item">
+              <a href="{{ item.href }}" class="{{ 'active' if item.active else '' }}">
+                <i class="bi {{ item.icon }}"></i> {{ item.label }}
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+        {% if ns.in_section %}</div>{% endif %}
+      </ul>
+    </aside>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- Page Title Bar -->
+      <div class="page-title-bar">
+        <div class="d-flex align-items-center gap-2">
+          <nav aria-label="breadcrumb" style="font-size:.8rem;">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Home</a></li>
+              <li class="breadcrumb-item">Security / Monitoring</li>
+              <li class="breadcrumb-item active">{{ title }}</li>
+            </ol>
+          </nav>
+        </div>
+        <h1><i class="bi {{ icon }} me-2" style="font-size:1.1rem;"></i>{{ title }}</h1>
+        <div class="subtitle">Audit trail of all resource operations across the control plane</div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button class="tb-btn" onclick="location.reload()"><i class="bi-arrow-clockwise"></i> Refresh</button>
+        <button class="tb-btn" onclick="exportCSV()"><i class="bi-download"></i> Export CSV</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" onclick="toggleQueryPanel()"><i class="bi-code-slash"></i> Query Editor</button>
+      </div>
+
+      <!-- KQL Query Panel -->
+      <div class="query-panel" id="queryPanel">
+        <div class="query-toggle" id="queryToggle" onclick="toggleQueryPanel()">
+          <i class="bi-chevron-right"></i>
+          <span>Kusto Query Language (KQL)</span>
+          <span style="margin-left:auto;font-size:.72rem;color:#888;">Filter logs with powerful queries</span>
+        </div>
+        <div class="query-content" id="queryContent">
+          <div class="query-row">
+            <div class="query-editor">
+              <textarea class="query-textarea" id="kqlQuery" placeholder="ActivityLogs
+| where action == 'CREATE'
+| where timestamp > ago(24h)
+| order by timestamp desc"></textarea>
+              <div class="query-hint">
+                Supported: <code>where</code> <code>order by</code> <code>project</code> <code>take</code> • 
+                Operators: <code>==</code> <code>!=</code> <code>contains</code> <code>startswith</code> <code>&gt;</code> <code>&lt;</code> •
+                Functions: <code>ago(1h)</code> <code>ago(24h)</code> <code>ago(7d)</code>
+              </div>
+            </div>
+            <div class="query-sidebar">
+              <div>
+                <label>Time Range</label>
+                <select id="timeRange" onchange="applyTimeRange()">
+                  <option value="">All time</option>
+                  <option value="1h">Last 1 hour</option>
+                  <option value="6h">Last 6 hours</option>
+                  <option value="24h">Last 24 hours</option>
+                  <option value="7d">Last 7 days</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="custom">Custom range...</option>
+                </select>
+              </div>
+              <div id="customTimeRange" style="display:none;">
+                <label>From</label>
+                <input type="datetime-local" id="timeFrom">
+                <label style="margin-top:4px;">To</label>
+                <input type="datetime-local" id="timeTo">
+              </div>
+            </div>
+          </div>
+          <div class="query-actions">
+            <button class="btn-run" onclick="runQuery()" id="runQueryBtn">
+              <i class="bi-play-fill"></i> Run Query
+            </button>
+            <button class="btn-secondary" onclick="saveCurrentQuery()" title="Save current query">
+              <i class="bi-bookmark-plus"></i> Save
+            </button>
+            <div class="sample-queries">
+              <button class="btn-secondary" onclick="toggleSampleQueries()">
+                <i class="bi-lightbulb"></i> Sample Queries
+              </button>
+              <div class="sample-dropdown" id="sampleDropdown">
+                <div class="sample-loading" id="sampleLoading">Loading queries...</div>
+                <!-- Dynamic content loaded via API -->
+              </div>
+            </div>
+            <div class="query-history">
+              <button class="btn-secondary" onclick="toggleQueryHistory()">
+                <i class="bi-clock-history"></i> History
+              </button>
+              <div class="history-dropdown" id="historyDropdown">
+                <div class="history-empty" id="historyEmpty">No query history yet</div>
+              </div>
+            </div>
+            <button class="btn-secondary" onclick="clearQuery()" style="margin-left:auto;">
+              <i class="bi-x-circle"></i> Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <i class="bi-funnel" style="font-size:.85rem;color:#888;"></i>
+        <input type="text" id="filterInput" class="filter-input" placeholder="Filter for any field..." onkeyup="filterTable()">
+        <select id="actionFilter" onchange="filterTable()">
+          <option value="">Action: all</option>
+          {% for act in actions %}
+            <option value="{{ act }}" {{ 'selected' if filters.action == act else '' }}>{{ act }}</option>
+          {% endfor %}
+        </select>
+        <select id="typeFilter" onchange="filterTable()">
+          <option value="">Type: all</option>
+          {% for rt in resource_types %}
+            <option value="{{ rt }}" {{ 'selected' if filters.resource_type == rt else '' }}>{{ rt }}</option>
+          {% endfor %}
+        </select>
+        <div class="ms-auto" style="font-size:.8rem;color:#666;">
+          Showing <strong id="visibleCount">{{ logs|length }}</strong> of <strong>{{ total_count }}</strong>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="data-table-wrapper">
+        {% if error %}
+        <div class="alert alert-danger m-4">
+          <i class="bi-exclamation-triangle me-2"></i>{{ error }}
+        </div>
+        {% elif logs %}
+        <table class="data-table" id="logsTable">
+          <thead>
+            <tr>
+              <th style="width:160px;">Timestamp</th>
+              <th style="width:80px;">Action</th>
+              <th>Resource</th>
+              <th>Type</th>
+              <th style="width:80px;">Status</th>
+              <th style="width:120px;">Actor</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr data-event='{{ log | tojson | safe }}' onclick="showEventDetail(JSON.parse(this.dataset.event))">
+              <td>{{ log.timestamp[:19] if log.timestamp else '-' }}</td>
+              <td>
+                <span class="action-badge {{ log.action|lower }}">{{ log.action }}</span>
+              </td>
+              <td>
+                {% set resource_link = None %}
+                {% if log.resource_type == 'ITL.Core/tenants' %}
+                  {% set resource_link = '/resources/tenants/' ~ log.resource_name %}
+                {% elif log.resource_type == 'ITL.Core/subscriptions' %}
+                  {% set resource_link = '/resources/subscriptions/' ~ log.resource_name %}
+                {% elif log.resource_type == 'ITL.Core/resourceGroups' or log.resource_type == 'ITL.Core/resourcegroups' %}
+                  {% set resource_link = '/resources/resourcegroups/' ~ log.resource_name %}
+                {% elif log.resource_type == 'ITL.Core/managementgroups' %}
+                  {% set resource_link = '/resources/managementgroups/' ~ log.resource_name %}
+                {% endif %}
+                {% if resource_link %}
+                <a href="{{ resource_link }}" class="resource-link" onclick="event.stopPropagation();"><i class="bi bi-clock-history me-1" style="font-size:.8rem;opacity:.5;"></i>{{ log.resource_name or '-' }}</a>
+                {% else %}
+                {{ log.resource_name or '-' }}
+                {% endif %}
+                <div style="font-size:.75rem;color:#888;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ log.resource_id or '' }}</div>
+              </td>
+              <td>{{ log.resource_type or '-' }}</td>
+              <td>
+                <span class="status-badge {{ log.status|lower if log.status else 'success' }}">
+                  {{ log.status or 'Succeeded' }}
+                </span>
+              </td>
+              <td>{{ log.actor_id or 'system' }}</td>
+              <td>
+                <button class="ellipsis-btn" title="View details" onclick="event.stopPropagation(); showEventDetail(JSON.parse(this.closest('tr').dataset.event))">⋯</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi-clock-history"></i>
+          <h5>No activity logs found</h5>
+          <p>There are no events matching your filter criteria.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Pagination -->
+      {% if logs %}
+      {% set current_page = (filters.offset // filters.limit) + 1 %}
+      {% set total_pages = ((total_count - 1) // filters.limit) + 1 if total_count > 0 else 1 %}
+      <div class="pagination-bar">
+        <div>
+          Showing <strong>{{ filters.offset + 1 }} – {{ filters.offset + logs|length }}</strong> of <strong>{{ total_count }}</strong>.
+          Display count:
+          <select id="pageSize" onchange="changePageSize(this.value)" style="font-size:.8rem;padding:2px 6px;border:1px solid #ccc;border-radius:4px;">
+            <option value="25" {{ 'selected' if filters.limit == 25 else '' }}>25</option>
+            <option value="50" {{ 'selected' if filters.limit == 50 else '' }}>50</option>
+            <option value="100" {{ 'selected' if filters.limit == 100 else '' }}>100</option>
+          </select>
+        </div>
+        <div class="page-numbers">
+          <a class="page-btn {{ 'disabled' if current_page <= 1 else '' }}" 
+             href="/activity-logs?scope={{ filters.scope }}&action={{ filters.action or '' }}&resource_type={{ filters.resource_type or '' }}&limit={{ filters.limit }}&offset={{ (current_page - 2) * filters.limit }}">‹</a>
+          {% for p in range(1, [total_pages + 1, 10]|min) %}
+          <a class="page-btn {{ 'active' if p == current_page else '' }}" 
+             href="/activity-logs?scope={{ filters.scope }}&action={{ filters.action or '' }}&resource_type={{ filters.resource_type or '' }}&limit={{ filters.limit }}&offset={{ (p - 1) * filters.limit }}">{{ p }}</a>
+          {% endfor %}
+          {% if total_pages > 9 %}
+          <span style="padding:0 6px;color:#888;">…</span>
+          {% endif %}
+          <a class="page-btn {{ 'disabled' if current_page >= total_pages else '' }}" 
+             href="/activity-logs?scope={{ filters.scope }}&action={{ filters.action or '' }}&resource_type={{ filters.resource_type or '' }}&limit={{ filters.limit }}&offset={{ current_page * filters.limit }}">›</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Event Detail Slide-Out Panel -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="eventDetailPanel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title"><i class="bi-clock-history me-2"></i>Event Details</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="panel-toolbar">
+        <button class="tb-btn" onclick="copyEventJson()"><i class="bi-clipboard"></i> Copy JSON</button>
+        <button class="tb-btn" onclick="downloadEventJson()"><i class="bi-download"></i> Download</button>
+      </div>
+      <div class="panel-content" id="eventDetailContent">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Query Modal -->
+  <div class="modal fade" id="saveQueryModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background:#1e1e1e;border:1px solid #333;">
+        <div class="modal-header" style="border-bottom:1px solid #333;">
+          <h5 class="modal-title" style="color:#e4e4e4;"><i class="bi-bookmark-plus me-2"></i>Save Query</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" style="color:#bbb;">Name</label>
+            <input type="text" class="form-control" id="saveQueryName" placeholder="My custom query" style="background:#2d2d2d;border-color:#444;color:#e4e4e4;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" style="color:#bbb;">Category</label>
+            <input type="text" class="form-control" id="saveQueryCategory" value="My Queries" placeholder="My Queries" style="background:#2d2d2d;border-color:#444;color:#e4e4e4;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" style="color:#bbb;">Description (optional)</label>
+            <input type="text" class="form-control" id="saveQueryDescription" placeholder="Brief description" style="background:#2d2d2d;border-color:#444;color:#e4e4e4;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" style="color:#bbb;">Query</label>
+            <pre class="p-2" style="background:#2d2d2d;border:1px solid #444;color:#e4e4e4;font-size:.8rem;max-height:150px;overflow:auto;border-radius:4px;" id="saveQueryPreview"></pre>
+          </div>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid #333;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="confirmSaveQuery()"><i class="bi-check-lg me-1"></i>Save Query</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p class="mb-0">&copy; 2026 ITlusions Control Plane. All rights reserved.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentEvent = null;
+
+    function showEventDetail(evt) {
+      currentEvent = evt;
+      const ts = evt.timestamp ? new Date(evt.timestamp).toLocaleString() : '-';
+      const changes = evt.changes ? JSON.stringify(evt.changes, null, 2) : 'No changes recorded';
+      const metadata = evt.metadata ? JSON.stringify(evt.metadata, null, 2) : '{}';
+      
+      document.getElementById('eventDetailContent').innerHTML = `
+        <div class="detail-section">
+          <h6>Event Information</h6>
+          <div class="detail-row"><span class="detail-label">Event ID</span><span class="detail-value"><code style="font-size:.78rem;">${evt.event_id || evt.id || '-'}</code></span></div>
+          <div class="detail-row"><span class="detail-label">Timestamp</span><span class="detail-value">${ts}</span></div>
+          <div class="detail-row"><span class="detail-label">Action</span><span class="detail-value"><span class="action-badge ${(evt.action||'').toLowerCase()}">${evt.action || '-'}</span></span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="status-badge ${(evt.status||'success').toLowerCase()}">${evt.status || 'Succeeded'}</span></span></div>
+        </div>
+        <div class="detail-section">
+          <h6>Resource</h6>
+          <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value" style="font-weight:500;color:#2563eb;">${evt.resource_name || '-'}</span></div>
+          <div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">${evt.resource_type || '-'}</span></div>
+          <div class="detail-row"><span class="detail-label">Resource ID</span><span class="detail-value"><code style="font-size:.75rem;word-break:break-all;">${evt.resource_id || '-'}</code></span></div>
+        </div>
+        <div class="detail-section">
+          <h6>Actor</h6>
+          <div class="detail-row"><span class="detail-label">Actor ID</span><span class="detail-value">${evt.actor_id || 'system'}</span></div>
+          <div class="detail-row"><span class="detail-label">Actor Type</span><span class="detail-value">${evt.actor_type || 'system'}</span></div>
+          <div class="detail-row"><span class="detail-label">IP Address</span><span class="detail-value">${evt.ip_address || '-'}</span></div>
+        </div>
+        <div class="detail-section">
+          <h6>Changes</h6>
+          <pre class="json-block">${changes}</pre>
+        </div>
+        <div class="detail-section">
+          <h6>Metadata</h6>
+          <pre class="json-block">${metadata}</pre>
+        </div>
+      `;
+      new bootstrap.Offcanvas(document.getElementById('eventDetailPanel')).show();
+    }
+
+    function copyEventJson() {
+      if (currentEvent) {
+        navigator.clipboard.writeText(JSON.stringify(currentEvent, null, 2));
+      }
+    }
+
+    function downloadEventJson() {
+      if (currentEvent) {
+        const blob = new Blob([JSON.stringify(currentEvent, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `event-${currentEvent.event_id || currentEvent.id || 'unknown'}.json`;
+        a.click();
+      }
+    }
+
+    function exportCSV() {
+      const table = document.getElementById('logsTable');
+      if (!table) return;
+      let csv = [];
+      const rows = table.querySelectorAll('tr');
+      rows.forEach(row => {
+        const cols = row.querySelectorAll('td, th');
+        const rowData = [];
+        cols.forEach(col => rowData.push('"' + col.innerText.replace(/"/g, '""') + '"'));
+        csv.push(rowData.join(','));
+      });
+      const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'activity-logs.csv';
+      a.click();
+    }
+
+    function changePageSize(newLimit) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('limit', newLimit);
+      url.searchParams.set('offset', '0');
+      window.location.href = url.toString();
+    }
+
+    function getRows() { return Array.from(document.querySelectorAll('#logsTable tbody tr')); }
+
+    function filterTable() {
+      const text = (document.getElementById('filterInput').value || '').toLowerCase();
+      const actionSel = document.getElementById('actionFilter');
+      const typeSel = document.getElementById('typeFilter');
+      const action = actionSel ? actionSel.value : '';
+      const typeVal = typeSel ? typeSel.value : '';
+
+      let visible = 0;
+      getRows().forEach(row => {
+        const rowText = row.textContent.toLowerCase();
+        let show = rowText.includes(text);
+        if (show && action) show = rowText.includes(action.toLowerCase());
+        if (show && typeVal) show = rowText.includes(typeVal.toLowerCase());
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      document.getElementById('visibleCount').textContent = visible;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // KQL QUERY PANEL
+    // ═══════════════════════════════════════════════════════════════
+
+    let queryHistory = JSON.parse(localStorage.getItem('kqlQueryHistory') || '[]');
+
+    function toggleQueryPanel() {
+      const toggle = document.getElementById('queryToggle');
+      const content = document.getElementById('queryContent');
+      toggle.classList.toggle('expanded');
+      content.classList.toggle('show');
+    }
+
+    function applyTimeRange() {
+      const sel = document.getElementById('timeRange');
+      const customDiv = document.getElementById('customTimeRange');
+      if (sel.value === 'custom') {
+        customDiv.style.display = 'block';
+      } else {
+        customDiv.style.display = 'none';
+        if (sel.value) {
+          const query = document.getElementById('kqlQuery');
+          // Insert time clause if not present
+          if (!query.value.includes('ago(')) {
+            const lines = query.value.trim().split('\n').filter(l => l.trim());
+            if (lines.length === 0) lines.push('ActivityLogs');
+            lines.splice(1, 0, `| where timestamp > ago(${sel.value})`);
+            query.value = lines.join('\n');
+          }
+        }
+      }
+    }
+
+    function toggleSampleQueries() {
+      const dropdown = document.getElementById('sampleDropdown');
+      dropdown.classList.toggle('show');
+      // Close history if open
+      document.getElementById('historyDropdown').classList.remove('show');
+    }
+
+    function toggleQueryHistory() {
+      const dropdown = document.getElementById('historyDropdown');
+      dropdown.classList.toggle('show');
+      // Close samples if open
+      document.getElementById('sampleDropdown').classList.remove('show');
+      renderQueryHistory();
+    }
+
+    function renderQueryHistory() {
+      const dropdown = document.getElementById('historyDropdown');
+      const empty = document.getElementById('historyEmpty');
+      if (queryHistory.length === 0) {
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      dropdown.innerHTML = queryHistory.slice(0, 10).map((h, i) => `
+        <div class="history-item" onclick="useHistoryQuery(${i})">
+          <div class="history-query">${escapeHtml(h.query)}</div>
+          <div class="history-time">${new Date(h.time).toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+
+    function useHistoryQuery(index) {
+      const h = queryHistory[index];
+      if (h) {
+        document.getElementById('kqlQuery').value = h.query;
+        document.getElementById('historyDropdown').classList.remove('show');
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SAMPLE QUERIES (loaded from API)
+    // ═══════════════════════════════════════════════════════════════
+
+    let sampleQueriesData = null;
+
+    async function loadSampleQueries() {
+      try {
+        const resp = await fetch('/api/sample-queries');
+        if (resp.ok) {
+          sampleQueriesData = await resp.json();
+          renderSampleQueriesDropdown();
+        }
+      } catch (e) {
+        console.error('Failed to load sample queries:', e);
+      }
+    }
+
+    function renderSampleQueriesDropdown() {
+      const dropdown = document.getElementById('sampleDropdown');
+      if (!sampleQueriesData || !sampleQueriesData.categories) {
+        dropdown.innerHTML = '<div class="sample-loading">No queries available</div>';
+        return;
+      }
+      
+      let html = '';
+      const categories = sampleQueriesData.categories;
+      const categoryOrder = ['Common', 'Resources', 'Security', 'Advanced', 'My Queries'];
+      
+      // Sort categories: predefined order first, then alphabetical
+      const sortedCategories = Object.keys(categories).sort((a, b) => {
+        const ai = categoryOrder.indexOf(a);
+        const bi = categoryOrder.indexOf(b);
+        if (ai >= 0 && bi >= 0) return ai - bi;
+        if (ai >= 0) return -1;
+        if (bi >= 0) return 1;
+        return a.localeCompare(b);
+      });
+      
+      for (const category of sortedCategories) {
+        const queries = categories[category];
+        if (!queries || queries.length === 0) continue;
+        
+        html += `<div class="sample-category">${escapeHtml(category)}</div>`;
+        for (const q of queries) {
+          const isUser = q.source === 'user';
+          html += `
+            <div class="sample-item ${isUser ? 'user-query' : ''}" onclick="useSampleQueryObj(${JSON.stringify(q).replace(/"/g, '&quot;')})">
+              <div class="sample-name">
+                ${escapeHtml(q.name)}
+                ${isUser ? '<span class="user-badge">user</span>' : ''}
+              </div>
+              ${q.description ? `<div class="sample-desc">${escapeHtml(q.description)}</div>` : ''}
+              ${isUser ? `<button class="delete-query-btn" onclick="event.stopPropagation(); deleteUserQuery('${escapeHtml(q.name)}')" title="Delete query"><i class="bi-trash"></i></button>` : ''}
+            </div>
+          `;
+        }
+      }
+      
+      dropdown.innerHTML = html || '<div class="sample-loading">No queries available</div>';
+    }
+
+    function useSampleQueryObj(q) {
+      if (q && q.query) {
+        document.getElementById('kqlQuery').value = q.query;
+        document.getElementById('sampleDropdown').classList.remove('show');
+      }
+    }
+
+    // Keep backwards compatibility for old hardcoded calls
+    function useSampleQuery(name) {
+      // Try to find query by name in loaded data
+      if (sampleQueriesData && sampleQueriesData.categories) {
+        for (const cat of Object.values(sampleQueriesData.categories)) {
+          for (const q of cat) {
+            if (q.name === name || q.name.toLowerCase().includes(name.toLowerCase())) {
+              useSampleQueryObj(q);
+              return;
+            }
+          }
+        }
+      }
+      document.getElementById('sampleDropdown').classList.remove('show');
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SAVE QUERY
+    // ═══════════════════════════════════════════════════════════════
+
+    function saveCurrentQuery() {
+      const query = document.getElementById('kqlQuery').value.trim();
+      if (!query) {
+        alert('Please enter a query first');
+        return;
+      }
+      document.getElementById('saveQueryPreview').textContent = query;
+      document.getElementById('saveQueryName').value = '';
+      document.getElementById('saveQueryCategory').value = 'My Queries';
+      document.getElementById('saveQueryDescription').value = '';
+      new bootstrap.Modal(document.getElementById('saveQueryModal')).show();
+    }
+
+    async function confirmSaveQuery() {
+      const name = document.getElementById('saveQueryName').value.trim();
+      const category = document.getElementById('saveQueryCategory').value.trim() || 'My Queries';
+      const description = document.getElementById('saveQueryDescription').value.trim();
+      const query = document.getElementById('kqlQuery').value.trim();
+      
+      if (!name) {
+        alert('Please enter a name for the query');
+        return;
+      }
+      
+      try {
+        const resp = await fetch('/api/sample-queries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, category, description, query })
+        });
+        
+        const data = await resp.json();
+        if (resp.ok) {
+          bootstrap.Modal.getInstance(document.getElementById('saveQueryModal')).hide();
+          await loadSampleQueries(); // Reload the dropdown
+          alert('Query saved successfully!');
+        } else {
+          alert('Error: ' + (data.error || 'Failed to save query'));
+        }
+      } catch (e) {
+        alert('Error saving query: ' + e.message);
+      }
+    }
+
+    async function deleteUserQuery(name) {
+      if (!confirm(`Delete query "${name}"?`)) return;
+      
+      try {
+        const resp = await fetch(`/api/sample-queries/${encodeURIComponent(name)}`, {
+          method: 'DELETE'
+        });
+        
+        if (resp.ok) {
+          await loadSampleQueries(); // Reload the dropdown
+        } else {
+          const data = await resp.json();
+          alert('Error: ' + (data.error || 'Failed to delete query'));
+        }
+      } catch (e) {
+        alert('Error deleting query: ' + e.message);
+      }
+    }
+
+    // Load sample queries on page load
+    loadSampleQueries();
+
+    function clearQuery() {
+      document.getElementById('kqlQuery').value = '';
+      document.getElementById('timeRange').value = '';
+      document.getElementById('customTimeRange').style.display = 'none';
+      // Reset table filter
+      getRows().forEach(row => row.style.display = '');
+      document.getElementById('visibleCount').textContent = getRows().length;
+    }
+
+    function addToHistory(query) {
+      queryHistory = queryHistory.filter(h => h.query !== query);
+      queryHistory.unshift({ query, time: Date.now() });
+      queryHistory = queryHistory.slice(0, 20);
+      localStorage.setItem('kqlQueryHistory', JSON.stringify(queryHistory));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // KQL PARSER
+    // ═══════════════════════════════════════════════════════════════
+
+    function parseKQL(query) {
+      const lines = query.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+      const parsed = {
+        where: [],
+        orderBy: null,
+        orderDesc: true,
+        project: null,
+        take: null
+      };
+
+      for (const line of lines) {
+        if (line.startsWith('|')) {
+          const cmd = line.substring(1).trim();
+          
+          // Parse WHERE
+          if (cmd.startsWith('where ')) {
+            parsed.where.push(parseWhereClause(cmd.substring(6).trim()));
+          }
+          
+          // Parse ORDER BY
+          else if (cmd.startsWith('order by ')) {
+            const rest = cmd.substring(9).trim();
+            const parts = rest.split(/\s+/);
+            parsed.orderBy = parts[0];
+            parsed.orderDesc = parts[1]?.toLowerCase() !== 'asc';
+          }
+          
+          // Parse PROJECT
+          else if (cmd.startsWith('project ')) {
+            parsed.project = cmd.substring(8).split(',').map(f => f.trim());
+          }
+          
+          // Parse TAKE/LIMIT
+          else if (cmd.startsWith('take ') || cmd.startsWith('limit ')) {
+            const num = parseInt(cmd.split(/\s+/)[1]);
+            if (!isNaN(num)) parsed.take = num;
+          }
+        }
+      }
+      
+      return parsed;
+    }
+
+    function parseWhereClause(clause) {
+      // Handle ago() function
+      const agoMatch = clause.match(/(\w+)\s*>\s*ago\((\d+)([hdm])\)/);
+      if (agoMatch) {
+        const [, field, num, unit] = agoMatch;
+        const ms = { h: 3600000, d: 86400000, m: 60000 }[unit] || 3600000;
+        return { field, op: '>', value: new Date(Date.now() - parseInt(num) * ms).toISOString() };
+      }
+
+      // Parse operators: ==, !=, contains, startswith, >, <
+      const patterns = [
+        { regex: /(\w+)\s*==\s*"([^"]*)"/, op: '==' },
+        { regex: /(\w+)\s*==\s*'([^']*)'/, op: '==' },
+        { regex: /(\w+)\s*!=\s*"([^"]*)"/, op: '!=' },
+        { regex: /(\w+)\s*!=\s*'([^']*)'/, op: '!=' },
+        { regex: /(\w+)\s+contains\s+"([^"]*)"/, op: 'contains' },
+        { regex: /(\w+)\s+contains\s+'([^']*)'/, op: 'contains' },
+        { regex: /(\w+)\s+startswith\s+"([^"]*)"/, op: 'startswith' },
+        { regex: /(\w+)\s+startswith\s+'([^']*)'/, op: 'startswith' },
+        { regex: /(\w+)\s*>\s*"([^"]*)"/, op: '>' },
+        { regex: /(\w+)\s*<\s*"([^"]*)"/, op: '<' },
+      ];
+
+      for (const p of patterns) {
+        const m = clause.match(p.regex);
+        if (m) return { field: m[1], op: p.op, value: m[2] };
+      }
+
+      return null;
+    }
+
+    function evaluateWhere(event, condition) {
+      if (!condition) return true;
+      const val = event[condition.field];
+      if (val === undefined) return false;
+      const strVal = String(val).toLowerCase();
+      const condVal = String(condition.value).toLowerCase();
+
+      switch (condition.op) {
+        case '==': return strVal === condVal;
+        case '!=': return strVal !== condVal;
+        case 'contains': return strVal.includes(condVal);
+        case 'startswith': return strVal.startsWith(condVal);
+        case '>': return val > condition.value;
+        case '<': return val < condition.value;
+        default: return true;
+      }
+    }
+
+    function runQuery() {
+      const queryText = document.getElementById('kqlQuery').value.trim();
+      if (!queryText) {
+        // Reset to show all
+        getRows().forEach(row => row.style.display = '');
+        document.getElementById('visibleCount').textContent = getRows().length;
+        return;
+      }
+
+      // Add to history
+      addToHistory(queryText);
+
+      // Parse KQL
+      const parsed = parseKQL(queryText);
+      const rows = getRows();
+      let visible = 0;
+      const matchedRows = [];
+
+      rows.forEach(row => {
+        try {
+          const event = JSON.parse(row.dataset.event || '{}');
+          let match = true;
+
+          // Apply WHERE clauses
+          for (const cond of parsed.where) {
+            if (!evaluateWhere(event, cond)) {
+              match = false;
+              break;
+            }
+          }
+
+          row.style.display = match ? '' : 'none';
+          if (match) {
+            visible++;
+            matchedRows.push({ row, event });
+          }
+        } catch (e) {
+          row.style.display = 'none';
+        }
+      });
+
+      // Apply ORDER BY
+      if (parsed.orderBy && matchedRows.length > 1) {
+        const tbody = document.querySelector('#logsTable tbody');
+        matchedRows.sort((a, b) => {
+          const va = a.event[parsed.orderBy] || '';
+          const vb = b.event[parsed.orderBy] || '';
+          const cmp = va > vb ? 1 : va < vb ? -1 : 0;
+          return parsed.orderDesc ? -cmp : cmp;
+        });
+        matchedRows.forEach(m => tbody.appendChild(m.row));
+      }
+
+      // Apply TAKE
+      if (parsed.take && matchedRows.length > parsed.take) {
+        matchedRows.slice(parsed.take).forEach(m => {
+          m.row.style.display = 'none';
+        });
+        visible = parsed.take;
+      }
+
+      document.getElementById('visibleCount').textContent = visible;
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.sample-queries')) {
+        document.getElementById('sampleDropdown').classList.remove('show');
+      }
+      if (!e.target.closest('.query-history')) {
+        document.getElementById('historyDropdown').classList.remove('show');
+      }
+    });
+
+    // Keyboard shortcut: Ctrl+Enter to run query
+    document.getElementById('kqlQuery')?.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.key === 'Enter') {
+        runQuery();
+      }
+    });
+
+    // ── Sidebar Collapse/Expand ──────────────────────────────
+    const SIDEBAR_STATE_KEY = 'itl-sidebar-collapsed';
+
+    function getSidebarState() {
+      try {
+        return JSON.parse(localStorage.getItem(SIDEBAR_STATE_KEY)) || {};
+      } catch { return {}; }
+    }
+
+    function saveSidebarState(state) {
+      localStorage.setItem(SIDEBAR_STATE_KEY, JSON.stringify(state));
+    }
+
+    function toggleSection(sectionId) {
+      const header = document.querySelector(`.nav-header[data-section="${sectionId}"]`);
+      const section = document.querySelector(`.nav-section[data-section="${sectionId}"]`);
+      if (!header || !section) return;
+
+      const isCollapsed = header.classList.toggle('collapsed');
+      section.classList.toggle('collapsed', isCollapsed);
+
+      // Save state
+      const state = getSidebarState();
+      state[sectionId] = isCollapsed;
+      saveSidebarState(state);
+    }
+
+    function initSidebarState() {
+      const state = getSidebarState();
+      document.querySelectorAll('.nav-section').forEach(section => {
+        const sectionId = section.dataset.section;
+        const header = document.querySelector(`.nav-header[data-section="${sectionId}"]`);
+        if (!header) return;
+
+        // Set initial max-height for animation
+        section.style.maxHeight = section.scrollHeight + 'px';
+
+        // Restore collapsed state
+        if (state[sectionId]) {
+          header.classList.add('collapsed');
+          section.classList.add('collapsed');
+        }
+      });
+    }
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', initSidebarState);
+
+    // ── Sidebar Customization ────────────────────────────────────
+    const SIDEBAR_PREFS_KEY = 'itl-sidebar-prefs';
+    let categoryOrder = [];
+    let categoryVisibility = {};
+
+    function getSidebarPrefs() {
+      try {
+        return JSON.parse(localStorage.getItem(SIDEBAR_PREFS_KEY)) || { order: [], visibility: {} };
+      } catch { return { order: [], visibility: {} }; }
+    }
+
+    function saveSidebarPrefs(prefs) {
+      localStorage.setItem(SIDEBAR_PREFS_KEY, JSON.stringify(prefs));
+    }
+
+    function getCategories() {
+      const cats = [];
+      document.querySelectorAll('.nav-header[data-section]').forEach(header => {
+        const sectionId = header.dataset.section;
+        const icon = header.querySelector('i.bi')?.className.replace('bi ', '').replace(' me-1', '') || 'bi-folder';
+        const label = header.querySelector('.header-left')?.textContent.trim() || sectionId;
+        cats.push({ id: sectionId, icon, label });
+      });
+      return cats;
+    }
+
+    function openSidebarCustomize() {
+      const categories = getCategories();
+      const prefs = getSidebarPrefs();
+      
+      let orderedCats = categories;
+      if (prefs.order && prefs.order.length > 0) {
+        const catMap = Object.fromEntries(categories.map(c => [c.id, c]));
+        orderedCats = prefs.order.filter(id => catMap[id]).map(id => catMap[id]);
+        categories.forEach(c => { if (!prefs.order.includes(c.id)) orderedCats.push(c); });
+      }
+      
+      categoryOrder = orderedCats.map(c => c.id);
+      categoryVisibility = { ...prefs.visibility };
+      
+      const itemsHtml = orderedCats.map(cat => {
+        const visible = categoryVisibility[cat.id] !== false;
+        return `
+          <div class="sidebar-panel-item" draggable="true" data-cat-id="${cat.id}">
+            <i class="bi bi-grip-vertical drag-handle"></i>
+            <i class="bi ${cat.icon} cat-icon"></i>
+            <span class="cat-label">${cat.label}</span>
+            <label class="visibility-toggle">
+              <input type="checkbox" ${visible ? 'checked' : ''} onchange="toggleCatVisibility('${cat.id}', this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+        `;
+      }).join('');
+      
+      document.getElementById('catList').innerHTML = itemsHtml;
+      document.getElementById('sidebarCustomizePanel').classList.add('show');
+      document.getElementById('customizeBtn').classList.add('active');
+      initDragAndDrop();
+    }
+
+    function closeSidebarCustomize() {
+      document.getElementById('sidebarCustomizePanel').classList.remove('show');
+      document.getElementById('customizeBtn').classList.remove('active');
+    }
+
+    function toggleCatVisibility(catId, visible) {
+      categoryVisibility[catId] = visible;
+    }
+
+    function initDragAndDrop() {
+      const list = document.getElementById('catList');
+      let draggedItem = null;
+      
+      list.querySelectorAll('.sidebar-panel-item').forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+          draggedItem = item;
+          item.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        
+        item.addEventListener('dragend', () => {
+          item.classList.remove('dragging');
+          draggedItem = null;
+          categoryOrder = [...list.querySelectorAll('.sidebar-panel-item')].map(i => i.dataset.catId);
+        });
+        
+        item.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (draggedItem && draggedItem !== item) {
+            const rect = item.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) {
+              list.insertBefore(draggedItem, item);
+            } else {
+              list.insertBefore(draggedItem, item.nextSibling);
+            }
+          }
+        });
+      });
+    }
+
+    function saveSidebarCustomize() {
+      const prefs = { order: categoryOrder, visibility: categoryVisibility };
+      saveSidebarPrefs(prefs);
+      applySidebarPrefs();
+      closeSidebarCustomize();
+    }
+
+    function resetSidebarPrefs() {
+      localStorage.removeItem(SIDEBAR_PREFS_KEY);
+      location.reload();
+    }
+
+    function applySidebarPrefs() {
+      const prefs = getSidebarPrefs();
+      const nav = document.getElementById('sidebarNav');
+      if (!nav) return;
+      
+      // Build category info including dividers
+      const categories = [];
+      nav.querySelectorAll('.nav-header[data-section]').forEach(header => {
+        const sectionId = header.dataset.section;
+        const section = nav.querySelector(`.nav-section[data-section="${sectionId}"]`);
+        const divider = header.previousElementSibling?.classList.contains('nav-divider') ? header.previousElementSibling : null;
+        categories.push({ id: sectionId, header, section, divider });
+      });
+      const catMap = Object.fromEntries(categories.map(c => [c.id, c]));
+      
+      // Apply visibility (including dividers)
+      Object.entries(prefs.visibility || {}).forEach(([catId, visible]) => {
+        const cat = catMap[catId];
+        if (!cat) return;
+        const display = visible === false ? 'none' : '';
+        if (cat.header) cat.header.style.display = display;
+        if (cat.section) cat.section.style.display = display;
+        if (cat.divider) cat.divider.style.display = display;
+      });
+      
+      // Apply order
+      if (prefs.order && prefs.order.length > 0) {
+        const orderedIds = [...prefs.order];
+        categories.forEach(c => { if (!orderedIds.includes(c.id)) orderedIds.push(c.id); });
+        orderedIds.forEach((id, index) => {
+          const cat = catMap[id];
+          if (cat) {
+            // Add divider only if not first visible item
+            if (index > 0 && cat.divider) nav.appendChild(cat.divider);
+            nav.appendChild(cat.header);
+            if (cat.section) nav.appendChild(cat.section);
+          }
+        });
+      }
+    }
+
+    // Apply preferences on load
+    document.addEventListener('DOMContentLoaded', applySidebarPrefs);
+  </script>
+</body>
+</html>

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ITL Control Plane — Design Reference</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --border:   rgba(255,255,255,0.1);
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --accent:   #0078d4;
+    --tag-cur:  #1f6feb;
+    --tag-ref:  #388bfd;
+    --green:    #3fb950;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #1b1b1b;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  header span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 12px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .filter-btn:hover  { background: rgba(255,255,255,0.08); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── Layout ── */
+  main { padding: 24px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 28px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* ── Card grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+  .card:hover {
+    box-shadow: 0 0 0 1px var(--accent), 0 4px 20px rgba(0,0,0,0.4);
+    transform: translateY(-2px);
+  }
+
+  .card-img {
+    width: 100%;
+    display: block;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    object-position: top left;
+    background: #111;
+  }
+
+  .card-body {
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .card-body .num {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    min-width: 24px;
+  }
+  .card-body .info { flex: 1; }
+  .card-body .title { font-size: 13px; font-weight: 600; }
+  .card-body .desc  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border-radius: 3px;
+    padding: 1px 7px;
+    margin-left: auto;
+    white-space: nowrap;
+    align-self: center;
+  }
+  .tag.current   { background: rgba(31,111,235,0.25); color: #58a6ff; border: 1px solid rgba(31,111,235,0.4); }
+  .tag.reference { background: rgba(56,139,253,0.18); color: #79c0ff; border: 1px solid rgba(56,139,253,0.35); }
+
+  /* ── Lightbox ── */
+  #lb {
+    display: none;
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #lb.open { display: flex; }
+  #lb img {
+    max-width: 92vw;
+    max-height: 86vh;
+    border-radius: 4px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  }
+  #lb-caption {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  #lb-close {
+    position: absolute;
+    top: 16px; right: 20px;
+    background: none; border: none;
+    color: #fff; font-size: 28px;
+    cursor: pointer; line-height: 1;
+  }
+
+  /* hide/show via filter */
+  .card[data-kind="current"]   { }
+  .card[data-kind="reference"] { }
+  body.show-current   .card[data-kind="reference"] { display: none; }
+  body.show-reference .card[data-kind="current"]   { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ITL Control Plane — Design Reference</h1>
+  <span>01–06 current &nbsp;|&nbsp; 07–18 Azure Portal reference</span>
+  <div class="filter-bar">
+    <button class="filter-btn active" id="btn-all" onclick="setFilter('all')">All</button>
+    <button class="filter-btn" id="btn-current"   onclick="setFilter('current')">Current design</button>
+    <button class="filter-btn" id="btn-reference" onclick="setFilter('reference')">Azure reference</button>
+  </div>
+</header>
+
+<main>
+
+  <div class="section-label">Current ITL Control Plane Portal design</div>
+  <div class="grid" id="grid-current">
+
+    <div class="card" data-kind="current" onclick="openLb('01-dashboard-overview.png','Dashboard — Overview')">
+      <img class="card-img" src="01-dashboard-overview.png" alt="Dashboard overview" loading="lazy">
+      <div class="card-body">
+        <span class="num">01</span>
+        <div class="info">
+          <div class="title">Dashboard — Overview</div>
+          <div class="desc">Stat tiles, resource graph toggle, paginated resource table</div>
+        </div>
+        <span class="tag current">Current</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="current" onclick="openLb('02-resource-graph.png','Resource Graph — Neo4j visualisation')">
+      <img class="card-img" src="02-resource-graph.png" alt="Resource graph" loading="lazy">
+      <div class="card-body">
+        <span class="num">02</span>
+        <div class="info">
+          <div class="title">Resource Graph</div>
+          <div class="desc">Neo4j force-graph: tenants, management groups, subscriptions</div>
+        </div>
+        <span class="tag current">Current</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="current" onclick="openLb('03-neo4j-connection.png','Neo4j Browser — connect dialog')">
+      <img class="card-img" src="03-neo4j-connection.png" alt="Neo4j connection" loading="lazy">
+      <div class="card-body">
+        <span class="num">03</span>
+        <div class="info">
+          <div class="title">Neo4j Browser</div>
+          <div class="desc">Embedded Neo4j Browser — connect dialog</div>
+        </div>
+        <span class="tag current">Current</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="current" onclick="openLb('04-infrastructure-docker.png','Infrastructure — Docker Compose stack')">
+      <img class="card-img" src="04-infrastructure-docker.png" alt="Infrastructure docker" loading="lazy">
+      <div class="card-body">
+        <span class="num">04</span>
+        <div class="info">
+          <div class="title">Infrastructure — Docker Stack</div>
+          <div class="desc">Compose stack cards, service dependency graph, networks, volumes</div>
+        </div>
+        <span class="tag current">Current</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="current" onclick="openLb('05-container-detail.png','Container detail blade')">
+      <img class="card-img" src="05-container-detail.png" alt="Container detail" loading="lazy">
+      <div class="card-body">
+        <span class="num">05</span>
+        <div class="info">
+          <div class="title">Container Detail</div>
+          <div class="desc">Left nav, breadcrumb, Essentials / Resources / Runtime sections</div>
+        </div>
+        <span class="tag current">Current</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="current" onclick="openLb('06-resource-provider-infra.png','Resource Provider — Infrastructure view')">
+      <img class="card-img" src="06-resource-provider-infra.png" alt="Resource provider infra" loading="lazy">
+      <div class="card-body">
+        <span class="num">06</span>
+        <div class="info">
+          <div class="title">Resource Provider — Infrastructure</div>
+          <div class="desc">Alternate Portal implementation: wider layout, 4-column card grid</div>
+        </div>
+        <span class="tag current">Current</span>
+      </div>
+    </div>
+
+  </div><!-- /grid-current -->
+
+  <div class="section-label">Azure Portal — design reference (dark theme)</div>
+  <div class="grid" id="grid-reference">
+
+    <div class="card" data-kind="reference" onclick="openLb('07-azure-portal-home.png','Azure Portal — Home')">
+      <img class="card-img" src="07-azure-portal-home.png" alt="Azure Portal Home" loading="lazy">
+      <div class="card-body">
+        <span class="num">07</span>
+        <div class="info">
+          <div class="title">Home</div>
+          <div class="desc">Hero quickstart tiles, recent resources, recommended services</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('08-azure-portal-all-resources.png','Azure Portal — All Resources list')">
+      <img class="card-img" src="08-azure-portal-all-resources.png" alt="All Resources" loading="lazy">
+      <div class="card-body">
+        <span class="num">08</span>
+        <div class="info">
+          <div class="title">All Resources</div>
+          <div class="desc">Filter chip bar, command bar, data grid with type badges</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('09-azure-portal-resource-groups.png','Azure Portal — Resource Groups')">
+      <img class="card-img" src="09-azure-portal-resource-groups.png" alt="Resource Groups" loading="lazy">
+      <div class="card-body">
+        <span class="num">09</span>
+        <div class="info">
+          <div class="title">Resource Groups</div>
+          <div class="desc">List blade with service sub-menu, breadcrumb, Copilot chips</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('10-azure-portal-virtual-machines.png','Azure Portal — Virtual Machines')">
+      <img class="card-img" src="10-azure-portal-virtual-machines.png" alt="Virtual Machines" loading="lazy">
+      <div class="card-body">
+        <span class="num">10</span>
+        <div class="info">
+          <div class="title">Virtual Machines</div>
+          <div class="desc">Empty state pattern: illustration + heading + primary CTA</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('11-azure-portal-create-hub.png','Azure Portal — Create a resource')">
+      <img class="card-img" src="11-azure-portal-create-hub.png" alt="Create resource" loading="lazy">
+      <div class="card-body">
+        <span class="num">11</span>
+        <div class="info">
+          <div class="title">Create a Resource</div>
+          <div class="desc">3-column: category tree + popular services cards + marketplace</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('12-azure-portal-dashboard.png','Azure Portal — Dashboard')">
+      <img class="card-img" src="12-azure-portal-dashboard.png" alt="Dashboard" loading="lazy">
+      <div class="card-body">
+        <span class="num">12</span>
+        <div class="info">
+          <div class="title">Dashboard</div>
+          <div class="desc">Widget tile grid, dashboard toolbar (Edit/Share/Export/Clone)</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('13-azure-portal-settings-dir.png','Azure Portal — Settings / Directories')">
+      <img class="card-img" src="13-azure-portal-settings-dir.png" alt="Settings directories" loading="lazy">
+      <div class="card-body">
+        <span class="num">13</span>
+        <div class="info">
+          <div class="title">Settings — Directories</div>
+          <div class="desc">Left sub-nav panel, directory table, Switch badge button</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('14-azure-portal-settings-appearance.png','Azure Portal — Settings / Appearance')">
+      <img class="card-img" src="14-azure-portal-settings-appearance.png" alt="Settings appearance" loading="lazy">
+      <div class="card-body">
+        <span class="num">14</span>
+        <div class="info">
+          <div class="title">Settings — Appearance</div>
+          <div class="desc">Card-picker pattern: menu behaviour, theme, startup page</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('15-azure-portal-monitor.png','Azure Portal — Monitor')">
+      <img class="card-img" src="15-azure-portal-monitor.png" alt="Monitor" loading="lazy">
+      <div class="card-body">
+        <span class="num">15</span>
+        <div class="info">
+          <div class="title">Monitor</div>
+          <div class="desc">Overview/Tutorials tabs, 2×N card grid for Insights &amp; Detection</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('16-azure-portal-entra-id.png','Azure Portal — Microsoft Entra ID')">
+      <img class="card-img" src="16-azure-portal-entra-id.png" alt="Entra ID" loading="lazy">
+      <div class="card-body">
+        <span class="num">16</span>
+        <div class="info">
+          <div class="title">Microsoft Entra ID</div>
+          <div class="desc">Resource detail blade: left collapsible nav + main content tabs</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('17-azure-portal-storage-accounts.png','Azure Portal — Storage Accounts')">
+      <img class="card-img" src="17-azure-portal-storage-accounts.png" alt="Storage accounts" loading="lazy">
+      <div class="card-body">
+        <span class="num">17</span>
+        <div class="info">
+          <div class="title">Storage Accounts</div>
+          <div class="desc">Service hub: sub-menu tree + resources grid tab</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+    <div class="card" data-kind="reference" onclick="openLb('18-azure-portal-notifications.png','Azure Portal — Notifications panel')">
+      <img class="card-img" src="18-azure-portal-notifications.png" alt="Notifications" loading="lazy">
+      <div class="card-body">
+        <span class="num">18</span>
+        <div class="info">
+          <div class="title">Notifications Panel</div>
+          <div class="desc">Right-side overlay, bell icon, empty state + activity log link</div>
+        </div>
+        <span class="tag reference">Reference</span>
+      </div>
+    </div>
+
+  </div><!-- /grid-reference -->
+
+</main>
+
+<!-- Lightbox -->
+<div id="lb" role="dialog" aria-modal="true">
+  <button id="lb-close" onclick="closeLb()" aria-label="Close">&times;</button>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-caption"></div>
+</div>
+
+<script>
+  function openLb(src, caption) {
+    document.getElementById('lb-img').src = src;
+    document.getElementById('lb-caption').textContent = caption;
+    document.getElementById('lb').classList.add('open');
+  }
+  function closeLb() {
+    document.getElementById('lb').classList.remove('open');
+  }
+  document.getElementById('lb').addEventListener('click', function(e) {
+    if (e.target === this) closeLb();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLb();
+  });
+
+  function setFilter(kind) {
+    document.body.classList.remove('show-current', 'show-reference');
+    if (kind !== 'all') document.body.classList.add('show-' + kind);
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + kind).classList.add('active');
+  }
+</script>
+
+</body>
+</html>

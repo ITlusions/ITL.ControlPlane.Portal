@@ -1,0 +1,542 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - ITlusions Control Plane{% endblock %}
+
+{% block extra_css %}
+    /* ── Dashboard Strip (All Resources view) ──────────────── */
+    .dashboard-strip {
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #fafafa;
+    }
+    .stats-row {
+      display: flex; gap: 12px; padding: 16px 24px 8px;
+      flex-wrap: wrap;
+    }
+    .stat-tile {
+      flex: 1; min-width: 110px; max-width: 160px;
+      background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+      padding: 12px 14px; text-align: center;
+      text-decoration: none; color: inherit;
+      transition: box-shadow .15s, border-color .15s;
+      cursor: pointer;
+    }
+    .stat-tile:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); border-color: var(--orange-accent); }
+    .stat-tile .stat-num { font-size: 1.5rem; font-weight: 700; color: #333; line-height: 1; }
+    .stat-tile .stat-lbl {
+      font-size: .68rem; color: #888; text-transform: uppercase;
+      letter-spacing: .3px; margin-top: 4px; white-space: nowrap;
+    }
+    .stat-tile.active { border-color: var(--sidebar-active-text); background: #eef2ff; }
+
+    .db-badges {
+      display: flex; gap: 16px; padding: 4px 24px 12px;
+      font-size: .78rem;
+    }
+    .db-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      color: #666;
+    }
+    .db-badge .dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    }
+    .db-badge .dot.ok { background: #16a34a; }
+    .db-badge .dot.err { background: #dc2626; }
+
+    .graph-toggle {
+      padding: 6px 24px 10px;
+      border-top: 1px solid #eee;
+    }
+    .graph-toggle button {
+      background: none; border: 1px solid #ccc; border-radius: 4px;
+      padding: 4px 14px; font-size: .78rem; color: #555; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .graph-toggle button:hover { background: #f0f0f0; }
+    .graph-panel {
+      border-top: 1px solid #eee; position: relative;
+      display: none;
+    }
+    .graph-panel.show { display: block; }
+    .graph-legend {
+      position: absolute; top: 10px; right: 16px; z-index: 10;
+      background: rgba(255,255,255,.92); border-radius: 8px;
+      padding: 8px 12px; font-size: .75rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .graph-legend div { margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+    .graph-legend .swatch {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    }
+{% endblock %}
+
+{% block page_content %}
+      <!-- Page Title Bar -->
+      <div class="page-title-bar">
+        <div class="d-flex align-items-center gap-2">
+          <nav aria-label="breadcrumb" style="font-size:.8rem;">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Home</a></li>
+              <li class="breadcrumb-item active">{{ title }}</li>
+            </ol>
+          </nav>
+        </div>
+        <h1><i class="bi {{ icon }} me-2" style="font-size:1.1rem;"></i>{% if resource_type == 'all' %}ITL Control Plane{% else %}Resource Manager | {{ title }}{% endif %}</h1>
+        <div class="subtitle">{% if resource_type == 'all' %}Multi-tenant resource management with PostgreSQL &amp; Neo4j{% else %}{{ singular }} resources across your control plane{% endif %}</div>
+      </div>
+
+      {% if resource_type == 'all' and dashboard_stats %}
+      <!-- Dashboard Stats Strip -->
+      <div class="dashboard-strip">
+        <div class="stats-row">
+          <a href="/resources/all" class="stat-tile active">
+            <div class="stat-num">{{ dashboard_stats.postgresql.total }}</div>
+            <div class="stat-lbl">All Resources</div>
+          </a>
+          <a href="/resources/tenants" class="stat-tile">
+            <div class="stat-num">{{ dashboard_stats.postgresql.tenants }}</div>
+            <div class="stat-lbl">Tenants</div>
+          </a>
+          <a href="/resources/managementgroups" class="stat-tile">
+            <div class="stat-num">{{ dashboard_stats.postgresql.management_groups }}</div>
+            <div class="stat-lbl">Mgmt Groups</div>
+          </a>
+          <a href="/resources/subscriptions" class="stat-tile">
+            <div class="stat-num">{{ dashboard_stats.postgresql.subscriptions }}</div>
+            <div class="stat-lbl">Subscriptions</div>
+          </a>
+          <a href="/resources/resourcegroups" class="stat-tile">
+            <div class="stat-num">{{ dashboard_stats.postgresql.resource_groups }}</div>
+            <div class="stat-lbl">Resource Groups</div>
+          </a>
+          <a href="/resources/locations" class="stat-tile">
+            <div class="stat-num">{{ dashboard_stats.postgresql.locations }}</div>
+            <div class="stat-lbl">Locations</div>
+          </a>
+        </div>
+        <div class="db-badges">
+          <span class="db-badge"><span class="dot ok"></span> PostgreSQL</span>
+          <span class="db-badge"><span class="dot {{ 'ok' if dashboard_stats.neo4j.connected else 'err' }}"></span> Neo4j — {{ dashboard_stats.neo4j.total_nodes }} nodes, {{ dashboard_stats.neo4j.total_relationships }} relationships</span>
+          <span class="db-badge" style="margin-left:auto;">
+            <a href="http://localhost:8978" target="_blank" style="color:var(--sidebar-active-text);text-decoration:none;font-size:.72rem;"><i class="bi-database-gear me-1"></i>CloudBeaver</a>
+            <span style="margin:0 6px;color:#ddd;">|</span>
+            <a href="http://localhost:7474" target="_blank" style="color:var(--sidebar-active-text);text-decoration:none;font-size:.72rem;"><i class="bi-diagram-3 me-1"></i>Neo4j</a>
+            <span style="margin:0 6px;color:#ddd;">|</span>
+            <a href="http://localhost:8081/docs" target="_blank" style="color:var(--sidebar-active-text);text-decoration:none;font-size:.72rem;"><i class="bi-router me-1"></i>Gateway</a>
+          </span>
+        </div>
+        <div class="graph-toggle">
+          <button onclick="toggleGraph()"><i class="bi-diagram-3"></i> <span id="graphToggleLabel">Show Resource Graph</span></button>
+        </div>
+        <div class="graph-panel" id="graphPanel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="graph-legend">
+              <div><span class="swatch" style="background:#7c3aed;"></span> Tenant</div>
+              <div><span class="swatch" style="background:#059669;"></span> Management Group</div>
+              <div><span class="swatch" style="background:#2563eb;"></span> Subscription</div>
+              <div><span class="swatch" style="background:#d97706;"></span> Resource Group</div>
+              <div><span class="swatch" style="background:#f59e0b;"></span> Location</div>
+            </div>
+            <div class="graph-controls" style="display:flex;gap:12px;align-items:center;font-size:.78rem;">
+              <label style="display:flex;align-items:center;gap:4px;">
+                Depth:
+                <select id="graphDepth" onchange="reloadGraph()" style="padding:3px 6px;border:1px solid #ccc;border-radius:4px;font-size:.78rem;">
+                  <option value="1">Tenants</option>
+                  <option value="2">+ Mgmt Groups</option>
+                  <option value="3">+ Subscriptions</option>
+                  <option value="4" selected>+ Resource Groups</option>
+                  <option value="5">+ Locations</option>
+                </select>
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;">
+                RG Limit:
+                <input type="number" id="graphRgLimit" value="1000" min="10" max="5000" step="100" onchange="reloadGraph()" style="width:70px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;font-size:.78rem;">
+              </label>
+              <button onclick="reloadGraph()" style="padding:3px 8px;border:1px solid #ccc;border-radius:4px;background:#f5f5f5;cursor:pointer;font-size:.78rem;"><i class="bi-arrow-clockwise"></i></button>
+            </div>
+          </div>
+          <div id="graph-container" style="width:100%;height:420px;overflow:hidden;"></div>
+          <div id="graph-tooltip" style="position:absolute;display:none;background:#333;color:#fff;padding:6px 12px;border-radius:6px;font-size:.8rem;pointer-events:none;z-index:20;"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button class="tb-btn" onclick="location.reload()"><i class="bi-arrow-clockwise"></i> Refresh</button>
+        <button class="tb-btn" onclick="exportCSV()"><i class="bi-download"></i> Export CSV</button>
+        <div class="tb-sep"></div>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span style="font-size:.78rem;color:#888;">Group by</span>
+          <select id="groupBy" onchange="applyGroupBy()" style="font-size:.8rem;padding:4px 8px;border:1px solid #ccc;border-radius:4px;">
+            <option value="none">none</option>
+            <option value="_resolved_tenant">Tenant</option>
+            {% if resource_type == 'all' %}
+            <option value="_resource_type">Type</option>
+            {% endif %}
+            {% if resource_type in ('resourcegroups', 'all') %}
+            <option value="_resolved_subscription">Subscription</option>
+            <option value="location">Location</option>
+            {% endif %}
+            {% if resource_type == 'managementgroups' %}
+            <option value="_resolved_parent">Parent</option>
+            {% endif %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <i class="bi-funnel" style="font-size:.85rem;color:#888;"></i>
+        <input type="text" id="filterInput" class="filter-input" placeholder="Filter for any field..." onkeyup="filterTable()">
+        {% if filters.get('tenants') and filters.tenants|length > 1 %}
+        <select id="tenantFilter" onchange="filterTable()">
+          <option value="">Tenant: all</option>
+          {% for t in filters.tenants %}
+          <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+        {% if filters.get('locations') and filters.locations|length > 1 %}
+        <select id="locationFilter" onchange="filterTable()">
+          <option value="">Location: all</option>
+          {% for l in filters.locations %}
+          <option value="{{ l }}">{{ l }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+        {% if resource_type == 'all' %}
+        <select id="typeFilter" onchange="filterTable()">
+          <option value="">Type: all</option>
+          <option value="Tenant">Tenant</option>
+          <option value="Management Group">Management Group</option>
+          <option value="Subscription">Subscription</option>
+          <option value="Resource Group">Resource Group</option>
+          <option value="Location">Location</option>
+        </select>
+        {% endif %}
+        <div class="ms-auto" style="font-size:.8rem;color:#666;">
+          Showing <strong id="visibleCount">{{ count }}</strong> of <strong>{{ count }}</strong>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="data-table-wrapper">
+        {% if resources %}
+        <table class="data-table" id="resourceTable">
+          <thead>
+            <tr>
+              {% for col in columns %}
+              <th onclick="sortTable('{{ col.key }}')" data-key="{{ col.key }}">
+                {{ col.label }} <span class="sort-icon">↕</span>
+              </th>
+              {% endfor %}
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            {% for resource in resources %}
+            <tr data-resource='{{ resource._flat | tojson if resource._flat else "{}" }}'>
+              {% for col in columns %}
+              <td>
+                {% set val = resource._flat[col.key] if resource._flat and col.key in resource._flat else '' %}
+                {% if col.get('link', False) and val %}
+                  {% set link_type = resource._flat._src_type if resource._flat and resource._flat._src_type else resource_type %}
+                  <a href="/resources/{{ link_type }}/{{ val }}" class="resource-link">
+                    <i class="bi {{ icon }} me-1" style="font-size:.8rem;opacity:.5;"></i>{{ val }}
+                  </a>
+                {% elif col.get('badge', False) and val %}
+                  {% if col.get('badge_color') == 'primary' %}
+                    <span class="tenant-badge">{{ val }}</span>
+                  {% elif val in ['Succeeded', 'Active', 'Enabled'] %}
+                    <span class="status-badge success">{{ val }}</span>
+                  {% elif val in ['Failed', 'Error'] %}
+                    <span class="status-badge warning">{{ val }}</span>
+                  {% else %}
+                    <span class="status-badge secondary">{{ val }}</span>
+                  {% endif %}
+                {% elif col.get('code', False) and val %}
+                  <code style="font-size:.78rem;color:#888;">{{ val }}</code>
+                {% else %}
+                  {{ val or '—' }}
+                {% endif %}
+              </td>
+              {% endfor %}
+              <td>
+                {% set link_type = resource._flat._src_type if resource._flat and resource._flat._src_type else resource_type %}
+                <button class="ellipsis-btn" title="More actions" onclick="event.stopPropagation(); window.location='/resources/{{ link_type }}/{{ resource._flat.name if resource._flat else resource.name }}'">⋯</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi-inbox"></i>
+          <h5>No {{ title.lower() }} found</h5>
+          <p>There are no {{ title.lower() }} to display.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Pagination -->
+      {% if resources %}
+      <div class="pagination-bar">
+        <div>
+          Showing <strong id="pageRange">1 – {{ [count, 25] | min }}</strong> of <strong>{{ count }}</strong>.
+          Display count:
+          <select id="pageSize" onchange="changePage(1)" style="font-size:.8rem;padding:2px 6px;border:1px solid #ccc;border-radius:4px;">
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="0">All</option>
+          </select>
+        </div>
+        <div class="page-numbers" id="pageNumbers"></div>
+      </div>
+      {% endif %}
+{% endblock %}
+
+{% block footer %}
+&copy; 2026 ITlusions Control Plane. All rights reserved.
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentPage = 1;
+    let sortKey = '';
+    let sortAsc = true;
+
+    function getRows() { return Array.from(document.querySelectorAll('#tableBody tr')); }
+
+    function filterTable() {
+      const text = (document.getElementById('filterInput').value || '').toLowerCase();
+      const tenantSel = document.getElementById('tenantFilter');
+      const locationSel = document.getElementById('locationFilter');
+      const typeSel = document.getElementById('typeFilter');
+      const tenant = tenantSel ? tenantSel.value : '';
+      const loc = locationSel ? locationSel.value : '';
+      const typeVal = typeSel ? typeSel.value : '';
+
+      let visible = 0;
+      getRows().forEach(row => {
+        const data = JSON.parse(row.dataset.resource || '{}');
+        const rowText = row.textContent.toLowerCase();
+        let show = rowText.includes(text);
+        if (show && tenant) show = (data._resolved_tenant || '') === tenant;
+        if (show && loc) show = (data.location || '') === loc;
+        if (show && typeVal) show = (data._resource_type || '') === typeVal;
+        row._filtered = show;
+        if (show) visible++;
+      });
+      document.getElementById('visibleCount').textContent = visible;
+      currentPage = 1;
+      paginate();
+    }
+
+    function sortTable(key) {
+      if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+      const tbody = document.getElementById('tableBody');
+      const rows = getRows();
+      rows.sort((a, b) => {
+        const va = (JSON.parse(a.dataset.resource || '{}')[key] || '').toString().toLowerCase();
+        const vb = (JSON.parse(b.dataset.resource || '{}')[key] || '').toString().toLowerCase();
+        return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      });
+      rows.forEach(r => tbody.appendChild(r));
+      document.querySelectorAll('.data-table thead th').forEach(th => {
+        const icon = th.querySelector('.sort-icon');
+        if (icon) icon.textContent = th.dataset.key === key ? (sortAsc ? '↑' : '↓') : '↕';
+      });
+      currentPage = 1;
+      paginate();
+    }
+
+    function paginate() {
+      const rows = getRows();
+      const pageSize = parseInt(document.getElementById('pageSize')?.value) || 0;
+      const filtered = rows.filter(r => r._filtered !== false);
+
+      if (pageSize === 0) {
+        rows.forEach(r => r.style.display = r._filtered !== false ? '' : 'none');
+        document.getElementById('pageRange').textContent = filtered.length > 0 ? '1 – ' + filtered.length : '0';
+        document.getElementById('pageNumbers').innerHTML = '';
+        return;
+      }
+
+      let idx = 0;
+      rows.forEach(r => {
+        if (r._filtered === false) { r.style.display = 'none'; return; }
+        const page = Math.floor(idx / pageSize) + 1;
+        r.style.display = page === currentPage ? '' : 'none';
+        idx++;
+      });
+
+      const total = filtered.length;
+      const pages = Math.ceil(total / pageSize);
+      const start = (currentPage - 1) * pageSize + 1;
+      const end = Math.min(currentPage * pageSize, total);
+      document.getElementById('pageRange').textContent = total > 0 ? start + ' – ' + end : '0';
+
+      let html = '<a class="page-btn ' + (currentPage <= 1 ? 'disabled' : '') + '" onclick="changePage(' + (currentPage - 1) + ')">‹</a>';
+      for (let p = 1; p <= pages && p <= 9; p++) {
+        html += '<a class="page-btn ' + (p === currentPage ? 'active' : '') + '" onclick="changePage(' + p + ')">' + p + '</a>';
+      }
+      if (pages > 9) html += '<span style="padding:0 6px;">…</span>';
+      html += '<a class="page-btn ' + (currentPage >= pages ? 'disabled' : '') + '" onclick="changePage(' + (currentPage + 1) + ')">›</a>';
+      document.getElementById('pageNumbers').innerHTML = html;
+    }
+
+    function changePage(p) {
+      const filtered = getRows().filter(r => r._filtered !== false);
+      const pageSize = parseInt(document.getElementById('pageSize')?.value) || filtered.length;
+      const pages = Math.ceil(filtered.length / pageSize);
+      if (p < 1 || p > pages) return;
+      currentPage = p;
+      paginate();
+    }
+
+    function exportCSV() {
+      const table = document.getElementById('resourceTable');
+      if (!table) return;
+      let csv = '';
+      table.querySelectorAll('tr').forEach(row => {
+        const cells = row.querySelectorAll('th, td');
+        const vals = [];
+        cells.forEach((c, i) => { if (i < cells.length - 1) vals.push('"' + c.textContent.trim().replace(/"/g, '""') + '"'); });
+        csv += vals.join(',') + '\n';
+      });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = '{{ resource_type }}.csv';
+      a.click();
+    }
+
+    function applyGroupBy() {
+      const val = document.getElementById('groupBy').value;
+      if (val === 'none') { filterTable(); return; }
+      sortKey = val; sortAsc = true;
+      sortTable(val);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      getRows().forEach(r => r._filtered = true);
+      paginate();
+    });
+
+    // Graph toggle
+    function toggleGraph() {
+      const panel = document.getElementById('graphPanel');
+      const label = document.getElementById('graphToggleLabel');
+      if (!panel) return;
+      if (panel.classList.contains('show')) {
+        panel.classList.remove('show');
+        label.textContent = 'Show Resource Graph';
+      } else {
+        panel.classList.add('show');
+        label.textContent = 'Hide Resource Graph';
+        if (!panel._loaded) { loadGraph(); panel._loaded = true; }
+      }
+    }
+
+    // Reload graph with current settings
+    function reloadGraph() {
+      const container = document.getElementById('graph-container');
+      if (container) {
+        container.innerHTML = '';
+        loadGraph();
+      }
+    }
+
+    // D3.js graph loader
+    async function loadGraph() {
+      const container = document.getElementById('graph-container');
+      const tooltip = document.getElementById('graph-tooltip');
+      if (!container) return;
+
+      // Get config from UI controls
+      const depthEl = document.getElementById('graphDepth');
+      const rgLimitEl = document.getElementById('graphRgLimit');
+      const depth = depthEl ? depthEl.value : 4;
+      const rgLimit = rgLimitEl ? rgLimitEl.value : 1000;
+
+      // Load D3 dynamically
+      if (!window.d3) {
+        await new Promise((resolve) => {
+          const s = document.createElement('script');
+          s.src = 'https://d3js.org/d3.v7.min.js';
+          s.onload = resolve;
+          document.head.appendChild(s);
+        });
+      }
+
+      const width = container.clientWidth;
+      const height = 420;
+      const colorMap = { tenant: '#7c3aed', managementgroup: '#059669', subscription: '#2563eb', resourcegroup: '#d97706', location: '#f59e0b' };
+      const radiusMap = { tenant: 18, managementgroup: 13, subscription: 10, resourcegroup: 7, location: 6 };
+
+      let data;
+      try { data = await (await fetch(`/api/graph?depth=${depth}&rg_limit=${rgLimit}`)).json(); } catch (e) {
+        container.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">Could not load graph.</p>';
+        return;
+      }
+      if (!data.nodes || !data.nodes.length) {
+        container.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">No graph data available.</p>';
+        return;
+      }
+
+      const svg = d3.select(container).append('svg').attr('width', width).attr('height', height);
+      const g = svg.append('g');
+      svg.call(d3.zoom().scaleExtent([0.3, 4]).on('zoom', (e) => g.attr('transform', e.transform)));
+
+      svg.append('defs').append('marker').attr('id','ah').attr('viewBox','0 -5 10 10')
+        .attr('refX',20).attr('refY',0).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+        .append('path').attr('d','M0,-5L10,0L0,5').attr('fill','#ccc');
+
+      const sim = d3.forceSimulation(data.nodes)
+        .force('link', d3.forceLink(data.links).id(d => d.id).distance(d => {
+          const src = data.nodes.find(n => n.id === (d.source.id || d.source));
+          return src && src.type === 'subscription' ? 50 : 90;
+        }))
+        .force('charge', d3.forceManyBody().strength(d => d.type === 'tenant' ? -400 : d.type === 'resourcegroup' ? -30 : -120))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => radiusMap[d.type] + 4));
+
+      const link = g.append('g').selectAll('line').data(data.links).join('line')
+        .attr('stroke','#ddd').attr('stroke-width',1.2).attr('marker-end','url(#ah)');
+
+      const node = g.append('g').selectAll('circle').data(data.nodes).join('circle')
+        .attr('r', d => radiusMap[d.type] || 8)
+        .attr('fill', d => colorMap[d.type] || '#999')
+        .attr('stroke','#fff').attr('stroke-width',1.5)
+        .style('cursor','pointer')
+        .call(d3.drag()
+          .on('start',(e,d) => { if(!e.active) sim.alphaTarget(.3).restart(); d.fx=d.x; d.fy=d.y; })
+          .on('drag',(e,d) => { d.fx=e.x; d.fy=e.y; })
+          .on('end',(e,d) => { if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; }));
+
+      const label = g.append('g').selectAll('text')
+        .data(data.nodes.filter(n => n.type === 'tenant' || n.type === 'managementgroup'))
+        .join('text')
+        .text(d => d.label.length > 20 ? d.label.substring(0,18)+'…' : d.label)
+        .attr('font-size', d => d.type === 'tenant' ? '11px' : '9px')
+        .attr('font-weight', d => d.type === 'tenant' ? '600' : '400')
+        .attr('fill','#555').attr('text-anchor','middle')
+        .attr('dy', d => -(radiusMap[d.type] + 6));
+
+      node.on('mouseover',(e,d) => {
+        const tl = d.type.replace('managementgroup','Management Group').replace('resourcegroup','Resource Group').replace('tenant','Tenant').replace('subscription','Subscription');
+        tooltip.style.display = 'block';
+        tooltip.innerHTML = '<strong>'+d.label+'</strong><br><span style="opacity:.8;">'+tl+'</span>';
+      }).on('mousemove',(e) => {
+        tooltip.style.left = (e.offsetX+14)+'px'; tooltip.style.top = (e.offsetY-10)+'px';
+      }).on('mouseout',() => { tooltip.style.display = 'none'; });
+
+      sim.on('tick', () => {
+        link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+        node.attr('cx',d=>d.x).attr('cy',d=>d.y);
+        label.attr('x',d=>d.x).attr('y',d=>d.y);
+      });
+    }
+  </script>
+{% endblock %}

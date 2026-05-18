@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Infrastructure - ITlusions Control Plane</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --header-bg: #3e3e3e;
+      --orange-accent: #ffa500;
+      --sidebar-bg: #f5f5f5;
+      --sidebar-width: 240px;
+      --sidebar-hover: #e8e8e8;
+      --sidebar-active: #e0e7ff;
+      --sidebar-active-text: #3b5998;
+      --toolbar-border: #e0e0e0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #fff;
+      margin: 0;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      background-color: var(--header-bg);
+      padding: 0.75rem 0;
+      position: fixed; top: 0; width: 100%; z-index: 1000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .sitename { color: #fff; font-weight: 700; font-size: 1.5rem; margin: 0; }
+    .site-logo { width: 28px; height: 28px; background: #ffd700; border-radius: 4px; margin-right: 10px; flex-shrink: 0; }
+    .navmenu ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 1.5rem; }
+    .navmenu a { color: rgba(255,255,255,.8); text-decoration: none; font-size: .9rem; transition: color .3s; }
+    .navmenu a:hover { color: #fff; }
+    .navmenu a.active { color: var(--orange-accent); }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .page-wrapper { display: flex; margin-top: 56px; min-height: calc(100vh - 56px); }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      border-right: 1px solid #e0e0e0;
+      padding: 0;
+      overflow-y: auto;
+      position: relative;
+      height: calc(100vh - 56px);
+    }
+    .sidebar-nav { list-style: none; margin: 0; padding: 0; }
+    .sidebar-search { padding: 12px 12px 8px; display: flex; gap: 6px; align-items: center; }
+    .sidebar-search input {
+      flex: 1; border: 1px solid #ccc; border-radius: 4px;
+      padding: 6px 10px; font-size: .85rem; background: #fff;
+    }
+    .sidebar-search input:focus { outline: none; border-color: var(--orange-accent); }
+    .sidebar-customize-btn {
+      background: none; border: 1px solid #ccc; border-radius: 4px;
+      padding: 6px 8px; cursor: pointer; color: #666;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-customize-btn:hover { background: #eee; color: #333; }
+    .sidebar-customize-btn.active { background: var(--orange-accent); color: #fff; border-color: var(--orange-accent); }
+
+    /* ── Customize Panel (inline) ────────────────────────────── */
+    .sidebar-customize-panel {
+      display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #fff; z-index: 100; flex-direction: column;
+    }
+    .sidebar-customize-panel.show { display: flex; }
+    .sidebar-panel-header {
+      padding: 12px 16px; border-bottom: 1px solid #eee;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fafafa;
+    }
+    .sidebar-panel-header h4 { margin: 0; font-size: .85rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 6px; }
+    .sidebar-panel-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #888; padding: 2px 6px; }
+    .sidebar-panel-close:hover { color: #333; }
+    .sidebar-panel-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .sidebar-panel-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      border-bottom: 1px solid #f5f5f5; cursor: grab; font-size: .8rem;
+    }
+    .sidebar-panel-item:hover { background: #f8f8f8; }
+    .sidebar-panel-item.dragging { opacity: .5; background: #e8f0fe; }
+    .sidebar-panel-item .drag-handle { color: #bbb; cursor: grab; font-size: .75rem; }
+    .sidebar-panel-item .cat-icon { width: 16px; text-align: center; color: #666; font-size: .8rem; }
+    .sidebar-panel-item .cat-label { flex: 1; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-panel-item .visibility-toggle {
+      position: relative; width: 32px; height: 18px; flex-shrink: 0;
+    }
+    .sidebar-panel-item .visibility-toggle input { opacity: 0; width: 0; height: 0; }
+    .sidebar-panel-item .visibility-toggle .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background: #ccc; border-radius: 18px; transition: .2s;
+    }
+    .sidebar-panel-item .visibility-toggle .slider:before {
+      position: absolute; content: ''; height: 12px; width: 12px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: .2s;
+    }
+    .sidebar-panel-item .visibility-toggle input:checked + .slider { background: var(--orange-accent); }
+    .sidebar-panel-item .visibility-toggle input:checked + .slider:before { transform: translateX(14px); }
+    .sidebar-panel-footer {
+      padding: 10px 12px; border-top: 1px solid #eee;
+      display: flex; gap: 8px;
+    }
+    .sidebar-panel-footer button {
+      padding: 6px 12px; border-radius: 4px; font-size: .8rem; cursor: pointer; flex: 1;
+    }
+    .sidebar-panel-footer .btn-reset { background: #f0f0f0; border: 1px solid #ccc; color: #333; }
+    .sidebar-panel-footer .btn-reset:hover { background: #e0e0e0; }
+    .sidebar-panel-footer .btn-save { background: var(--orange-accent); border: none; color: #fff; }
+    .sidebar-panel-footer .btn-save:hover { background: #e69500; }
+    .sidebar { position: relative; }
+    .sidebar-nav .nav-header {
+      padding: 10px 16px 6px;
+      font-size: .8rem; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: .4px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+      transition: background .15s;
+    }
+    .sidebar-nav .nav-header:hover { background: var(--sidebar-hover); }
+    .sidebar-nav .nav-header .header-left { display: flex; align-items: center; gap: 6px; }
+    .sidebar-nav .nav-header .collapse-icon {
+      font-size: .7rem; color: #888; transition: transform .2s;
+    }
+    .sidebar-nav .nav-header.collapsed .collapse-icon { transform: rotate(-90deg); }
+    .sidebar-nav .nav-section {
+      overflow: hidden; transition: max-height .25s ease-out;
+    }
+    .sidebar-nav .nav-section.collapsed { max-height: 0 !important; }
+    .sidebar-nav .nav-divider { border-top: 1px solid #ddd; margin: 8px 12px; }
+    .sidebar-nav .nav-item a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 16px; text-decoration: none;
+      color: #333; font-size: .875rem;
+      border-left: 3px solid transparent;
+      transition: background .15s, border-color .15s;
+    }
+    .sidebar-nav .nav-item a:hover { background: var(--sidebar-hover); }
+    .sidebar-nav .nav-item a.active {
+      background: var(--sidebar-active);
+      border-left-color: var(--sidebar-active-text);
+      color: var(--sidebar-active-text);
+      font-weight: 600;
+    }
+    .sidebar-nav .nav-item a i { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* ── Content ────────────────────────────────────────────── */
+    .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    .page-title-bar {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--toolbar-border);
+      background: #fff;
+    }
+    .page-title-bar h1 { font-size: 1.35rem; font-weight: 600; margin: 0; color: #222; }
+    .page-title-bar .subtitle { font-size: .8rem; color: #888; margin-top: 2px; }
+
+    /* ── Host Strip ─────────────────────────────────────────── */
+    .host-strip {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      padding: 14px 24px;
+      background: #fafafa;
+      border-bottom: 1px solid var(--toolbar-border);
+    }
+    .host-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 12px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      font-size: .8rem; color: #444;
+    }
+    .host-chip i { color: var(--orange-accent); }
+    .host-chip .val { font-weight: 600; color: #222; }
+
+    /* ── Container Cards ────────────────────────────────────── */
+    .infra-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      padding: 20px 24px;
+    }
+    a.ctn-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%; }
+    .ctn-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+      transition: box-shadow .2s, border-color .2s;
+      cursor: pointer;
+      display: flex; flex-direction: column; flex: 1;
+    }
+    .ctn-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); border-color: #ffa500; }
+    .ctn-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    .ctn-card-header .ctn-name {
+      font-weight: 600; font-size: .95rem; color: #222;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .status-running { background: #28a745; }
+    .status-exited { background: #dc3545; }
+    .status-paused { background: #ffc107; }
+    .status-restarting { background: #17a2b8; }
+    .status-created { background: #6c757d; }
+    .ctn-badge {
+      padding: 2px 10px; border-radius: 12px;
+      font-size: .72rem; font-weight: 600; text-transform: uppercase;
+    }
+    .badge-running { background: #d4edda; color: #155724; }
+    .badge-exited { background: #f8d7da; color: #721c24; }
+    .badge-paused { background: #fff3cd; color: #856404; }
+    .badge-other { background: #e2e3e5; color: #383d41; }
+
+    .ctn-card-body { padding: 14px 16px; flex: 1; }
+    .ctn-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-bottom: 8px; font-size: .82rem;
+    }
+    .ctn-row:last-child { margin-bottom: 0; }
+    .ctn-label { color: #888; min-width: 70px; flex-shrink: 0; }
+    .ctn-value { color: #333; word-break: break-all; }
+    .ctn-value code { font-size: .78rem; background: #f5f5f5; padding: 1px 5px; border-radius: 3px; }
+    .port-badge {
+      display: inline-block;
+      padding: 1px 8px;
+      margin: 1px 2px;
+      background: #e8f0fe;
+      color: #1a73e8;
+      border-radius: 4px;
+      font-size: .76rem;
+      font-weight: 600;
+    }
+    .health-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 10px; font-size: .72rem; font-weight: 600;
+    }
+    .health-healthy { background: #d4edda; color: #155724; }
+    .health-unhealthy { background: #f8d7da; color: #721c24; }
+    .health-starting { background: #d1ecf1; color: #0c5460; }
+    .health-none { background: #e2e3e5; color: #383d41; }
+
+    /* ── Section Headers ───────────────────────────────────── */
+    .section-header {
+      padding: 12px 24px 6px;
+      font-size: .85rem; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: .4px;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* ── Network & Volume Tables ───────────────────────────── */
+    .nv-section { padding: 0 24px 20px; }
+    .nv-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .nv-table th {
+      text-align: left; padding: 8px 10px;
+      background: #f5f5f5; border-bottom: 2px solid #ddd;
+      font-weight: 600; color: #555; font-size: .78rem;
+      text-transform: uppercase; letter-spacing: .3px;
+    }
+    .nv-table td {
+      padding: 8px 10px; border-bottom: 1px solid #eee; color: #333;
+    }
+
+    /* ── Architecture Diagram ──────────────────────────────── */
+    .arch-container { padding: 20px 24px; }
+    .arch-svg { width: 100%; background: #fafafa; border: 1px solid #eee; border-radius: 8px; }
+
+    /* ── Error/Empty ───────────────────────────────────────── */
+    .infra-alert {
+      margin: 24px;
+      padding: 16px 20px;
+      border-radius: 6px;
+      font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────── -->
+<header class="header">
+  <div class="container-fluid d-flex align-items-center px-4">
+    <div class="site-logo"></div>
+    <h1 class="sitename me-auto">ITlusions Control Plane</h1>
+    <nav class="navmenu">
+      <ul>
+        <li><a href="/resources/all">Resources</a></li>
+        <li><a href="/infra" class="active">Infrastructure</a></li>
+        <li><a href="/api/graph" target="_blank">Graph API</a></li>
+        <li><a href="/api/infra" target="_blank">Infra API</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<!-- ── Page ────────────────────────────────────────────── -->
+<div class="page-wrapper">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <!-- Customize Panel (inline) -->
+    <div class="sidebar-customize-panel" id="sidebarCustomizePanel">
+      <div class="sidebar-panel-header">
+        <h4><i class="bi bi-sliders"></i> Customize</h4>
+        <button class="sidebar-panel-close" onclick="closeSidebarCustomize()">&times;</button>
+      </div>
+      <div class="sidebar-panel-body" id="catList"></div>
+      <div class="sidebar-panel-footer">
+        <button class="btn-reset" onclick="resetSidebarPrefs()">Reset</button>
+        <button class="btn-save" onclick="saveSidebarCustomize()">Save</button>
+      </div>
+    </div>
+
+    <div class="sidebar-search">
+      <input type="text" placeholder="Search..." id="sidebarSearch">
+      <button class="sidebar-customize-btn" id="customizeBtn" onclick="openSidebarCustomize()" title="Customize sidebar">
+        <i class="bi bi-gear"></i>
+      </button>
+    </div>
+    <ul class="sidebar-nav" id="sidebarNav">
+      {% set ns = namespace(section_id='', in_section=false) %}
+      {% for item in sidebar_items %}
+        {% if item.get('is_header', False) and item.label %}
+          {% if ns.in_section %}</div>{% endif %}
+          {% set ns.section_id = item.label | lower | replace(' ', '-') | replace('/', '-') %}
+          <li class="nav-header" data-section="{{ ns.section_id }}" onclick="toggleSection('{{ ns.section_id }}')">
+            <span class="header-left"><i class="bi {{ item.icon }} me-1"></i>{{ item.label }}</span>
+            <i class="bi bi-chevron-down collapse-icon"></i>
+          </li>
+          <div class="nav-section" data-section="{{ ns.section_id }}">
+          {% set ns.in_section = true %}
+        {% elif item.get('is_divider', False) %}
+          <li class="nav-divider"></li>
+        {% else %}
+          <li class="nav-item">
+            <a href="{{ item.href }}" class="{{ 'active' if item.get('active') else '' }}">
+              <i class="bi {{ item.icon }}"></i> {{ item.label }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      {% if ns.in_section %}</div>{% endif %}
+    </ul>
+  </nav>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Title Bar -->
+    <div class="page-title-bar">
+      <h1><i class="bi bi-hdd-rack me-2"></i>Infrastructure</h1>
+      {% if infra.runtime == 'kubernetes' %}
+        <div class="subtitle">Kubernetes namespace: <strong>{{ infra.namespace }}</strong></div>
+      {% elif infra.compose_project %}
+        <div class="subtitle">Docker Compose project: <strong>{{ infra.compose_project }}</strong></div>
+      {% endif %}
+    </div>
+
+    {% if infra.get("error") %}
+      <div class="infra-alert alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        {% if infra.runtime == 'kubernetes' %}
+        Could not connect to Kubernetes API: {{ infra.error }}
+        {% else %}
+        Could not connect to Docker daemon: {{ infra.error }}
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if infra.runtime == 'kubernetes' %}
+    <!-- ═══════════════ KUBERNETES VIEW ═══════════════ -->
+    
+    <!-- Pods -->
+    {% if infra.pods %}
+    <div class="section-header"><i class="bi bi-boxes me-1"></i> Pods ({{ infra.pods|length }})</div>
+    <div class="infra-grid">
+      {% for pod in infra.pods %}
+      <div class="ctn-card">
+        <div class="ctn-card-header">
+          <div class="ctn-name">
+            <span class="status-dot status-{{ 'running' if pod.status == 'Running' else ('exited' if pod.status == 'Succeeded' else 'other') }}"></span>
+            {{ pod.name }}
+          </div>
+          <span class="ctn-badge badge-{{ 'running' if pod.status == 'Running' else ('exited' if pod.status in ['Succeeded', 'Failed'] else 'other') }}">{{ pod.status }}</span>
+        </div>
+        <div class="ctn-card-body">
+          <div class="ctn-row">
+            <span class="ctn-label">Namespace</span>
+            <span class="ctn-value">{{ pod.namespace }}</span>
+          </div>
+          <div class="ctn-row">
+            <span class="ctn-label">Node</span>
+            <span class="ctn-value">{{ pod.node or '—' }}</span>
+          </div>
+          <div class="ctn-row">
+            <span class="ctn-label">IP</span>
+            <span class="ctn-value"><code>{{ pod.ip or '—' }}</code></span>
+          </div>
+          {% if pod.uptime %}
+          <div class="ctn-row">
+            <span class="ctn-label">Uptime</span>
+            <span class="ctn-value">{{ pod.uptime }}</span>
+          </div>
+          {% endif %}
+          {% if pod.containers %}
+          <div class="ctn-row">
+            <span class="ctn-label">Containers</span>
+            <span class="ctn-value">
+              {% for ct in pod.containers %}
+                <span class="port-badge" style="background:{% if ct.ready %}#d4edda{% else %}#f8d7da{% endif %};color:{% if ct.ready %}#155724{% else %}#721c24{% endif %};">
+                  {{ ct.name }} ({{ ct.state }}{% if ct.restart_count > 0 %}, {{ ct.restart_count }} restarts{% endif %})
+                </span>
+              {% endfor %}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Deployments -->
+    {% if infra.deployments %}
+    <div class="section-header"><i class="bi bi-rocket me-1"></i> Deployments ({{ infra.deployments|length }})</div>
+    <div class="nv-section">
+      <table class="nv-table">
+        <thead><tr><th>Name</th><th>Namespace</th><th>Replicas</th><th>Image</th></tr></thead>
+        <tbody>
+        {% for d in infra.deployments %}
+          <tr>
+            <td><code>{{ d.name }}</code></td>
+            <td>{{ d.namespace }}</td>
+            <td>
+              <span class="port-badge" style="background:{% if d.ready_replicas == d.replicas %}#d4edda{% else %}#fff3cd{% endif %};color:{% if d.ready_replicas == d.replicas %}#155724{% else %}#856404{% endif %};">
+                {{ d.ready_replicas|default(0) }}/{{ d.replicas }}
+              </span>
+            </td>
+            <td><code style="font-size:.72rem;">{{ d.image }}</code></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Services -->
+    {% if infra.services %}
+    <div class="section-header"><i class="bi bi-signpost-2 me-1"></i> Services ({{ infra.services|length }})</div>
+    <div class="nv-section">
+      <table class="nv-table">
+        <thead><tr><th>Name</th><th>Type</th><th>Cluster IP</th><th>External IP</th><th>Ports</th></tr></thead>
+        <tbody>
+        {% for svc in infra.services %}
+          <tr>
+            <td><code>{{ svc.name }}</code></td>
+            <td>{{ svc.type }}</td>
+            <td><code>{{ svc.cluster_ip or '—' }}</code></td>
+            <td><code>{{ svc.external_ip or '—' }}</code></td>
+            <td>
+              {% for p in svc.ports %}
+                <span class="port-badge">{{ p.port }}{% if p.name %}/{{ p.name }}{% endif %} → {{ p.target_port }}</span>
+              {% endfor %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- ═══════════════ DOCKER VIEW ═══════════════ -->
+
+    <!-- Host Info Strip -->
+    {% if infra.host %}
+    <div class="host-strip">
+      <div class="host-chip"><i class="bi bi-cpu"></i> CPU <span class="val">{{ infra.host.cpus }}</span></div>
+      <div class="host-chip"><i class="bi bi-memory"></i> RAM <span class="val">{{ infra.host.memory_gb }} GB</span></div>
+      <div class="host-chip"><i class="bi bi-box-seam"></i> Containers <span class="val">{{ infra.host.containers_running }} / {{ infra.host.containers_total }}</span></div>
+      <div class="host-chip"><i class="bi bi-disc"></i> Images <span class="val">{{ infra.host.images }}</span></div>
+      <div class="host-chip"><i class="bi bi-gear"></i> Docker <span class="val">{{ infra.host.docker_version }}</span></div>
+      <div class="host-chip"><i class="bi bi-pc-display"></i> {{ infra.host.os }} <span class="val">{{ infra.host.architecture }}</span></div>
+    </div>
+    {% endif %}
+
+    <!-- Compose Stack Containers -->
+    {% if infra.containers %}
+    <div class="section-header"><i class="bi bi-box-seam me-1"></i> Compose Stack ({{ infra.containers|length }} containers)</div>
+    <div class="infra-grid">
+      {% for c in infra.containers %}
+      <a href="/infra/{{ c.id }}" class="ctn-link" title="Open {{ c.service }} details">
+      <div class="ctn-card">
+        <div class="ctn-card-header">
+          <div class="ctn-name">
+            <span class="status-dot status-{{ c.status }}"></span>
+            {{ c.service }}
+          </div>
+          <span class="ctn-badge badge-{{ c.status if c.status in ['running', 'exited', 'paused'] else 'other' }}">{{ c.status }}</span>
+        </div>
+        <div class="ctn-card-body">
+          <div class="ctn-row">
+            <span class="ctn-label">Container</span>
+            <span class="ctn-value"><code>{{ c.name }}</code></span>
+          </div>
+          <div class="ctn-row">
+            <span class="ctn-label">Image</span>
+            <span class="ctn-value"><code>{{ c.image }}</code></span>
+          </div>
+          {% if c.ports %}
+          <div class="ctn-row">
+            <span class="ctn-label">Ports</span>
+            <span class="ctn-value">
+              {% for p in c.ports %}
+                <span class="port-badge">{{ p.host }} → {{ p.container }}</span>
+              {% endfor %}
+            </span>
+          </div>
+          {% endif %}
+          {% if c.health != "none" %}
+          <div class="ctn-row">
+            <span class="ctn-label">Health</span>
+            <span class="health-badge health-{{ c.health }}">
+              {% if c.health == "healthy" %}<i class="bi bi-check-circle-fill"></i>
+              {% elif c.health == "unhealthy" %}<i class="bi bi-x-circle-fill"></i>
+              {% elif c.health == "starting" %}<i class="bi bi-arrow-repeat"></i>
+              {% endif %}
+              {{ c.health }}
+            </span>
+          </div>
+          {% endif %}
+          {% if c.uptime %}
+          <div class="ctn-row">
+            <span class="ctn-label">Uptime</span>
+            <span class="ctn-value">{{ c.uptime }}</span>
+          </div>
+          {% endif %}
+          <div class="ctn-row">
+            <span class="ctn-label">ID</span>
+            <span class="ctn-value"><code>{{ c.id }}</code></span>
+          </div>
+        </div>
+      </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Architecture Diagram (D3.js) -->
+    {% if infra.containers %}
+    <div class="section-header"><i class="bi bi-diagram-3 me-1"></i> Service Dependencies</div>
+    <div class="arch-container">
+      <svg id="archDiagram" class="arch-svg" height="300"></svg>
+    </div>
+    {% endif %}
+
+    <!-- Networks -->
+    {% if infra.networks %}
+    <div class="section-header"><i class="bi bi-globe me-1"></i> Networks ({{ infra.networks|length }})</div>
+    <div class="nv-section">
+      <table class="nv-table">
+        <thead><tr><th>Name</th><th>Driver</th><th>Scope</th><th>Connected Containers</th></tr></thead>
+        <tbody>
+        {% for n in infra.networks %}
+          <tr>
+            <td><code>{{ n.name }}</code></td>
+            <td>{{ n.driver }}</td>
+            <td>{{ n.scope }}</td>
+            <td>
+              {% for cn in n.containers %}
+                <span class="port-badge" style="background:#f0f0f0;color:#333;">{{ cn }}</span>
+              {% endfor %}
+              {% if not n.containers %}<span style="color:#999;">—</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Volumes -->
+    {% if infra.volumes %}
+    <div class="section-header"><i class="bi bi-device-hdd me-1"></i> Volumes ({{ infra.volumes|length }})</div>
+    <div class="nv-section">
+      <table class="nv-table">
+        <thead><tr><th>Name</th><th>Driver</th><th>Mountpoint</th></tr></thead>
+        <tbody>
+        {% for v in infra.volumes %}
+          <tr>
+            <td><code>{{ v.name }}</code></td>
+            <td>{{ v.driver }}</td>
+            <td><code style="font-size:.72rem;">{{ v.mountpoint }}</code></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Other Containers -->
+    {% if infra.other_containers %}
+    <div class="section-header"><i class="bi bi-box me-1"></i> Other Containers ({{ infra.other_containers|length }})</div>
+    <div class="infra-grid" style="padding-bottom:30px;">
+      {% for c in infra.other_containers %}
+      <a href="/infra/{{ c.id }}" class="ctn-link" title="Open {{ c.name }} details">
+      <div class="ctn-card" style="opacity:.85;">
+        <div class="ctn-card-header">
+          <div class="ctn-name">
+            <span class="status-dot status-{{ c.status }}"></span>
+            {{ c.name }}
+          </div>
+          <span class="ctn-badge badge-{{ c.status if c.status in ['running', 'exited', 'paused'] else 'other' }}">{{ c.status }}</span>
+        </div>
+        <div class="ctn-card-body">
+          <div class="ctn-row">
+            <span class="ctn-label">Image</span>
+            <span class="ctn-value"><code>{{ c.image }}</code></span>
+          </div>
+          {% if c.ports %}
+          <div class="ctn-row">
+            <span class="ctn-label">Ports</span>
+            <span class="ctn-value">
+              {% for p in c.ports %}<span class="port-badge">{{ p.host }} → {{ p.container }}</span>{% endfor %}
+            </span>
+          </div>
+          {% endif %}
+          {% if c.uptime %}
+          <div class="ctn-row">
+            <span class="ctn-label">Uptime</span>
+            <span class="ctn-value">{{ c.uptime }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% endif %}{# end runtime check (kubernetes vs docker) #}
+
+  </div><!-- /content -->
+</div><!-- /page-wrapper -->
+
+<!-- D3 Architecture Diagram -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(function() {
+  const containers = {{ infra.containers | tojson }};
+  if (!containers || containers.length === 0) return;
+
+  // Build dependency graph from known service patterns
+  const nodes = containers.map((c, i) => ({
+    id: c.service,
+    name: c.service,
+    status: c.status,
+    image: c.image,
+    index: i
+  }));
+
+  const nodeIds = new Set(nodes.map(n => n.id));
+
+  // Infer dependencies from image names and known patterns
+  const links = [];
+  const dbServices = nodes.filter(n =>
+    n.image.includes('postgres') || n.image.includes('neo4j') ||
+    n.image.includes('mysql') || n.image.includes('mongo') ||
+    n.image.includes('redis')
+  );
+  const appServices = nodes.filter(n =>
+    !n.image.includes('postgres') && !n.image.includes('neo4j') &&
+    !n.image.includes('mysql') && !n.image.includes('mongo') &&
+    !n.image.includes('redis') && !n.image.includes('cloudbeaver')
+  );
+  const toolServices = nodes.filter(n =>
+    n.image.includes('cloudbeaver')
+  );
+
+  // App services → DB services
+  appServices.forEach(app => {
+    dbServices.forEach(db => {
+      links.push({ source: app.id, target: db.id, type: 'data' });
+    });
+  });
+
+  // Tools → DB services
+  toolServices.forEach(tool => {
+    dbServices.forEach(db => {
+      links.push({ source: tool.id, target: db.id, type: 'tool' });
+    });
+  });
+
+  // Gateway → providers
+  const gateways = nodes.filter(n => n.id.includes('gateway'));
+  const providers = nodes.filter(n => n.id.includes('provider') || n.id.includes('core'));
+  gateways.forEach(gw => {
+    providers.forEach(prov => {
+      if (gw.id !== prov.id) {
+        links.push({ source: gw.id, target: prov.id, type: 'proxy' });
+      }
+    });
+  });
+
+  // Dashboard → gateway
+  const dashboards = nodes.filter(n => n.id.includes('dashboard'));
+  dashboards.forEach(dash => {
+    gateways.forEach(gw => {
+      links.push({ source: dash.id, target: gw.id, type: 'proxy' });
+    });
+    // If no gateway, dashboard → providers
+    if (gateways.length === 0) {
+      providers.forEach(prov => {
+        links.push({ source: dash.id, target: prov.id, type: 'proxy' });
+      });
+    }
+  });
+
+  const svg = d3.select('#archDiagram');
+  const width = svg.node().getBoundingClientRect().width;
+  const height = 300;
+  svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+  const statusColor = s => ({
+    running: '#28a745', exited: '#dc3545', paused: '#ffc107'
+  }[s] || '#6c757d');
+
+  const linkColor = t => ({
+    data: '#1a73e8', proxy: '#ffa500', tool: '#6c757d'
+  }[t] || '#ccc');
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(120))
+    .force('charge', d3.forceManyBody().strength(-400))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(50));
+
+  // Arrowheads
+  svg.append('defs').selectAll('marker')
+    .data(['data', 'proxy', 'tool'])
+    .enter().append('marker')
+    .attr('id', d => `arrow-${d}`)
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 38)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,-5L10,0L0,5')
+    .attr('fill', d => linkColor(d));
+
+  const link = svg.append('g')
+    .selectAll('line')
+    .data(links)
+    .enter().append('line')
+    .attr('stroke', d => linkColor(d.type))
+    .attr('stroke-width', 1.5)
+    .attr('stroke-dasharray', d => d.type === 'tool' ? '4,3' : 'none')
+    .attr('marker-end', d => `url(#arrow-${d.type})`);
+
+  const node = svg.append('g')
+    .selectAll('g')
+    .data(nodes)
+    .enter().append('g')
+    .call(d3.drag()
+      .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+    );
+
+  node.append('rect')
+    .attr('width', 70).attr('height', 30)
+    .attr('x', -35).attr('y', -15)
+    .attr('rx', 5)
+    .attr('fill', '#fff')
+    .attr('stroke', d => statusColor(d.status))
+    .attr('stroke-width', 2);
+
+  node.append('circle')
+    .attr('r', 4)
+    .attr('cx', -28)
+    .attr('cy', 0)
+    .attr('fill', d => statusColor(d.status));
+
+  node.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('x', 4)
+    .attr('dy', '0.35em')
+    .attr('font-size', '9px')
+    .attr('font-weight', '600')
+    .attr('fill', '#333')
+    .text(d => {
+      const name = d.name.replace('itl-', '').replace('itlcontrolplane', '');
+      return name.length > 10 ? name.substring(0, 9) + '…' : name;
+    });
+
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+})();
+</script>
+
+<script>
+  // ── Sidebar Collapse/Expand ──────────────────────────────────
+  const SIDEBAR_STATE_KEY = 'itl-sidebar-collapsed';
+
+  function getSidebarState() {
+    try {
+      return JSON.parse(localStorage.getItem(SIDEBAR_STATE_KEY)) || {};
+    } catch { return {}; }
+  }
+
+  function saveSidebarState(state) {
+    localStorage.setItem(SIDEBAR_STATE_KEY, JSON.stringify(state));
+  }
+
+  function toggleSection(sectionId) {
+    const header = document.querySelector(`.nav-header[data-section="${sectionId}"]`);
+    const section = document.querySelector(`.nav-section[data-section="${sectionId}"]`);
+    if (!header || !section) return;
+
+    const isCollapsed = header.classList.toggle('collapsed');
+    section.classList.toggle('collapsed', isCollapsed);
+
+    const state = getSidebarState();
+    state[sectionId] = isCollapsed;
+    saveSidebarState(state);
+  }
+
+  function initSidebarState() {
+    const state = getSidebarState();
+    document.querySelectorAll('.nav-section').forEach(section => {
+      const sectionId = section.dataset.section;
+      const header = document.querySelector(`.nav-header[data-section="${sectionId}"]`);
+      if (!header) return;
+
+      section.style.maxHeight = section.scrollHeight + 'px';
+
+      if (state[sectionId]) {
+        header.classList.add('collapsed');
+        section.classList.add('collapsed');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initSidebarState);
+
+  // ── Sidebar Customization ────────────────────────────────────
+  const SIDEBAR_PREFS_KEY = 'itl-sidebar-prefs';
+  let categoryOrder = [];
+  let categoryVisibility = {};
+
+  function getSidebarPrefs() {
+    try {
+      return JSON.parse(localStorage.getItem(SIDEBAR_PREFS_KEY)) || { order: [], visibility: {} };
+    } catch { return { order: [], visibility: {} }; }
+  }
+
+  function saveSidebarPrefs(prefs) {
+    localStorage.setItem(SIDEBAR_PREFS_KEY, JSON.stringify(prefs));
+  }
+
+  function getCategories() {
+    const cats = [];
+    document.querySelectorAll('.nav-header[data-section]').forEach(header => {
+      const sectionId = header.dataset.section;
+      const icon = header.querySelector('i.bi')?.className.replace('bi ', '').replace(' me-1', '') || 'bi-folder';
+      const label = header.querySelector('.header-left')?.textContent.trim() || sectionId;
+      cats.push({ id: sectionId, icon, label });
+    });
+    return cats;
+  }
+
+  function openSidebarCustomize() {
+    const categories = getCategories();
+    const prefs = getSidebarPrefs();
+    
+    let orderedCats = categories;
+    if (prefs.order && prefs.order.length > 0) {
+      const catMap = Object.fromEntries(categories.map(c => [c.id, c]));
+      orderedCats = prefs.order.filter(id => catMap[id]).map(id => catMap[id]);
+      categories.forEach(c => { if (!prefs.order.includes(c.id)) orderedCats.push(c); });
+    }
+    
+    categoryOrder = orderedCats.map(c => c.id);
+    categoryVisibility = { ...prefs.visibility };
+    
+    const itemsHtml = orderedCats.map(cat => {
+      const visible = categoryVisibility[cat.id] !== false;
+      return `
+        <div class="sidebar-panel-item" draggable="true" data-cat-id="${cat.id}">
+          <i class="bi bi-grip-vertical drag-handle"></i>
+          <i class="bi ${cat.icon} cat-icon"></i>
+          <span class="cat-label">${cat.label}</span>
+          <label class="visibility-toggle">
+            <input type="checkbox" ${visible ? 'checked' : ''} onchange="toggleCatVisibility('${cat.id}', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+      `;
+    }).join('');
+    
+    document.getElementById('catList').innerHTML = itemsHtml;
+    document.getElementById('sidebarCustomizePanel').classList.add('show');
+    document.getElementById('customizeBtn').classList.add('active');
+    initDragAndDrop();
+  }
+
+  function closeSidebarCustomize() {
+    document.getElementById('sidebarCustomizePanel').classList.remove('show');
+    document.getElementById('customizeBtn').classList.remove('active');
+  }
+
+  function toggleCatVisibility(catId, visible) {
+    categoryVisibility[catId] = visible;
+  }
+
+  function initDragAndDrop() {
+    const list = document.getElementById('catList');
+    let draggedItem = null;
+    
+    list.querySelectorAll('.sidebar-panel-item').forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        draggedItem = item;
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        draggedItem = null;
+        categoryOrder = [...list.querySelectorAll('.sidebar-panel-item')].map(i => i.dataset.catId);
+      });
+      
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (draggedItem && draggedItem !== item) {
+          const rect = item.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if (e.clientY < midY) {
+            list.insertBefore(draggedItem, item);
+          } else {
+            list.insertBefore(draggedItem, item.nextSibling);
+          }
+        }
+      });
+    });
+  }
+
+  function saveSidebarCustomize() {
+    const prefs = { order: categoryOrder, visibility: categoryVisibility };
+    saveSidebarPrefs(prefs);
+    applySidebarPrefs();
+    closeSidebarCustomize();
+  }
+
+  function resetSidebarPrefs() {
+    localStorage.removeItem(SIDEBAR_PREFS_KEY);
+    location.reload();
+  }
+
+  function applySidebarPrefs() {
+    const prefs = getSidebarPrefs();
+    const nav = document.getElementById('sidebarNav');
+    if (!nav) return;
+    
+    // Build category info including dividers
+    const categories = [];
+    nav.querySelectorAll('.nav-header[data-section]').forEach(header => {
+      const sectionId = header.dataset.section;
+      const section = nav.querySelector(`.nav-section[data-section="${sectionId}"]`);
+      const divider = header.previousElementSibling?.classList.contains('nav-divider') ? header.previousElementSibling : null;
+      categories.push({ id: sectionId, header, section, divider });
+    });
+    const catMap = Object.fromEntries(categories.map(c => [c.id, c]));
+    
+    // Apply visibility (including dividers)
+    Object.entries(prefs.visibility || {}).forEach(([catId, visible]) => {
+      const cat = catMap[catId];
+      if (!cat) return;
+      const display = visible === false ? 'none' : '';
+      if (cat.header) cat.header.style.display = display;
+      if (cat.section) cat.section.style.display = display;
+      if (cat.divider) cat.divider.style.display = display;
+    });
+    
+    // Apply order
+    if (prefs.order && prefs.order.length > 0) {
+      const orderedIds = [...prefs.order];
+      categories.forEach(c => { if (!orderedIds.includes(c.id)) orderedIds.push(c.id); });
+      orderedIds.forEach((id, index) => {
+        const cat = catMap[id];
+        if (cat) {
+          // Add divider only if not first visible item
+          if (index > 0 && cat.divider) nav.appendChild(cat.divider);
+          nav.appendChild(cat.header);
+          if (cat.section) nav.appendChild(cat.section);
+        }
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', applySidebarPrefs);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
