@@ -54,4 +54,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # Run the application
 ENV PORT=8090
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8090"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8090"]
